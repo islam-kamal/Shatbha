@@ -1,0 +1,16 @@
+{
+  "fileKey": "Azg6xA4xpiVFtvqd6Hwfxv",
+  "fileUrl": "https://www.figma.com/design/Azg6xA4xpiVFtvqd6Hwfxv",
+  "fileName": "Shatbha Mobile",
+  "planKey": "team::1303506663379706634",
+  "planName": "Islam Kamal's team",
+  "font": "Cairo",
+  "status": "file_created_import_via_plugin",
+  "previousFile": "https://www.figma.com/design/fwLuDQqrjBYCWmzSDAgmdM",
+  "plugin": "design/figma-plugin/manifest.json",
+  "import": {
+    "command": "Import mobile mockups",
+    "source": "design/mobile/shatbha-mobile-*.png",
+    "note": "Starter MCP quota is exhausted. Open this new file and run the local plugin to place screens."
+  }
+}

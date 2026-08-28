@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        margin: 0;
+        padding: 16px;
+        background: #1c1814;
+        color: #f6f1e8;
+      }
+      h1 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #c4a574;
+        margin: 0 0 8px;
+      }
+      p {
+        font-size: 12px;
+        line-height: 1.45;
+        color: #c8bfb3;
+        margin: 0 0 12px;
+      }
+      button,
+      label.btn {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+        background: #c4a574;
+        color: #1c1814;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled,
+      label.btn.disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      input {
+        display: none;
+      }
+      #status {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #d4bc8c;
+        min-height: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Import mobile mockups</h1>
+    <p>
+      Open the Shatbha file, stay on the <b>Screens</b> page, then choose the
+      PNG files from <code>design/mobile</code> (or the by-feature folder).
+    </p>
+    <label class="btn" id="pickLabel">
+      Choose PNG files
+      <input id="files" type="file" accept="image/png" multiple />
+    </label>
+    <div id="status"></div>
+    <script>
+      const input = document.getElementById("files");
+      const status = document.getElementById("status");
+      const pickLabel = document.getElementById("pickLabel");
+      let queue = [];
+      let sent = 0;
+      let total = 0;
+      let waiting = false;
+
+      function sendNext() {
+        if (!queue.length) {
+          parent.postMessage({ pluginMessage: { type: "done" } }, "*");
+          status.textContent = "Placed " + sent + " screens. You can close this.";
+          pickLabel.classList.remove("disabled");
+          waiting = false;
+          return;
+        }
+        const file = queue.shift();
+        const reader = new FileReader();
+        reader.onload = function () {
+          const dataUrl = String(reader.result);
+          const b64 = dataUrl.split(",")[1] || "";
+          sent += 1;
+          status.textContent = "Uploading " + sent + " / " + total + " — " + file.name;
+          parent.postMessage(
+            { pluginMessage: { type: "file", name: file.name, b64: b64 } },
+            "*"
+          );
+        };
+        reader.readAsDataURL(file);
+      }
+
+      input.onchange = function () {
+        queue = Array.prototype.slice.call(input.files || []).filter(function (f) {
+          return /\.png$/i.test(f.name);
+        });
+        total = queue.length;
+        sent = 0;
+        if (!total) {
+          status.textContent = "No PNG files selected.";
+          return;
+        }
+        pickLabel.classList.add("disabled");
+        parent.postMessage({ pluginMessage: { type: "start", count: total } }, "*");
+        status.textContent = "Preparing " + total + " screens…";
+      };
+
+      window.onmessage = function (event) {
+        const msg = event.data && event.data.pluginMessage;
+        if (!msg) return;
+        if (msg.type === "next") sendNext();
+        if (msg.type === "error") {
+          status.textContent = msg.message || "Import failed.";
+          pickLabel.classList.remove("disabled");
+        }
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "Shatbha Atelier Builder",
+  "id": "shatbha-atelier-builder",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "menu": [
+    { "name": "Import mobile mockups", "command": "mobile" },
+    { "name": "Build desktop screens", "command": "desktop" }
+  ]
+}
