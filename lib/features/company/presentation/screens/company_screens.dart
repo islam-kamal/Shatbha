@@ -29,7 +29,7 @@ class _CompanyScreenState extends State<CompanyScreen> {
     sl<CompanyRepository>().get().then((company) {
       if (!mounted) return;
       setState(() {
-        _name.text = company?.name ?? 'شطبة';
+        _name.text = company?.name ?? 'شطبها';
         _loading = false;
       });
     });
@@ -84,7 +84,7 @@ class _CompanyScreenState extends State<CompanyScreen> {
                               ),
                             ),
                             Text(
-                              'شطبة',
+                              'شطبها',
                               style: GoogleFonts.cairo(
                                 color: c.ivory,
                                 fontSize: 12,

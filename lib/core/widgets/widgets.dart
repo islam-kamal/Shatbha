@@ -17,7 +17,7 @@ class BrandLockup extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'شطبة',
+          'شطبها',
           style: GoogleFonts.cairo(
             fontSize: word,
             fontWeight: FontWeight.w800,

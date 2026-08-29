@@ -1047,7 +1047,7 @@ class PrintPreviewScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      'شطبة',
+                      'شطبها',
                       style: GoogleFonts.cairo(
                         fontWeight: FontWeight.w800,
                         fontSize: 22,

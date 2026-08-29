@@ -5,9 +5,9 @@ void main() {
   testWidgets('renders Arabic wordmark', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(body: Text('شطبة')),
+        home: Scaffold(body: Text('شطبها')),
       ),
     );
-    expect(find.text('شطبة'), findsOneWidget);
+    expect(find.text('شطبها'), findsOneWidget);
   });
 }

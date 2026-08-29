@@ -188,7 +188,7 @@ async function buildSidebar(navLabels, selected) {
   side.itemSpacing = 8;
   side.counterAxisSizingMode = "FIXED";
 
-  const brand = await txt("شطبة", "Type/Title", "color/text/brass", HEX.brass2, 22);
+  const brand = await txt("شطبها", "Type/Title", "color/text/brass", HEX.brass2, 22);
   brand.textAlignHorizontal = "RIGHT";
   side.appendChild(brand);
   brand.layoutSizingHorizontal = "FILL";
@@ -426,7 +426,7 @@ async function buildHome(page) {
   stage.primaryAxisAlignItems = "CENTER";
   stage.counterAxisAlignItems = "CENTER";
 
-  const hero = await txt("شطبة", "Type/Display", "color/text/on-chrome", HEX.ivory, 48);
+  const hero = await txt("شطبها", "Type/Display", "color/text/on-chrome", HEX.ivory, 48);
   hero.textAlignHorizontal = "CENTER";
   stage.appendChild(hero);
   const tag = await txt("أتيلية التشطيبات والمقاولات", "Type/Section", "color/text/brass", HEX.brass2, 16);

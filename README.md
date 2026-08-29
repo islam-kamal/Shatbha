@@ -1,4 +1,4 @@
-# شطبة / Shatbha
+# شطبها / Shatbha
 
 RTL ERP for Egyptian finishing and contracting SMEs. Arabic-first, four-tab shell, Atelier visual language.
 
@@ -72,7 +72,7 @@ Writes that go through repositories (`JournalRepository`, `ExpenseRepository`, `
 
 Login fields are prefilled with the admin account.
 
-**Seeded company:** شطبة · أتيليه التشطيبات والمقاولات · pack `finishing`.
+**Seeded company:** شطبها · أتيليه التشطيبات والمقاولات · pack `finishing`.
 
 | Fixture | Value | How it is computed |
 |---|---|---|
