@@ -3,12 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
-import 'core/di.dart';
-import 'features/auth/auth_bloc.dart';
-import 'features/shell/date_range_cubit.dart';
-import 'features/sync/sync_cubit.dart';
-import 'routing/app_router.dart';
-import 'theme/atelier_theme.dart';
+import 'core/di/injection.dart';
+import 'core/logging/app_log.dart';
+import 'core/routing/app_router.dart';
+import 'core/theme/atelier_theme.dart';
+import 'features/auth/presentation/cubit/auth_bloc.dart';
+import 'features/shell/presentation/cubit/date_range_cubit.dart';
+import 'features/sync/presentation/cubit/sync_cubit.dart';
 
 class ShatbhaApp extends StatefulWidget {
   const ShatbhaApp({super.key});
@@ -30,6 +31,7 @@ class _ShatbhaAppState extends State<ShatbhaApp> {
     _dates = DateRangeCubit();
     _sync = SyncCubit(sl())..refresh();
     _router = createRouter(_authBloc);
+    AppLog.i('app shell ready', tag: 'app');
   }
 
   @override
@@ -49,7 +51,7 @@ class _ShatbhaAppState extends State<ShatbhaApp> {
         BlocProvider.value(value: _sync),
       ],
       child: MaterialApp.router(
-        title: 'شطبة',
+        title: 'شطبها',
         debugShowCheckedModeBanner: false,
         theme: buildAtelierTheme(),
         locale: const Locale('ar'),
