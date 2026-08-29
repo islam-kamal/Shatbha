@@ -731,7 +731,7 @@ class HubRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_left, color: c.brass),
+            Icon(Icons.chevron_right, color: c.brass),
           ],
         ),
       ),
