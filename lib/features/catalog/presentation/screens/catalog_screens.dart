@@ -76,12 +76,22 @@ class _DefinitionsView extends StatelessWidget {
                 _PartyList(
                   rows: state.customers,
                   empty: 'لا يوجد عملاء',
-                  onAdd: () => context.push('/definitions/add-customer'),
+                  onAdd: () async {
+                    await context.push('/definitions/add-customer');
+                    if (context.mounted) {
+                      context.read<DefinitionsCubit>().load();
+                    }
+                  },
                 ),
                 _PartyList(
                   rows: state.contractors,
                   empty: 'لا يوجد مقاولون',
-                  onAdd: () => context.push('/definitions/add-contractor'),
+                  onAdd: () async {
+                    await context.push('/definitions/add-contractor');
+                    if (context.mounted) {
+                      context.read<DefinitionsCubit>().load();
+                    }
+                  },
                 ),
                 _NamedList(
                   rows: state.workTypes,
@@ -107,7 +117,11 @@ class _DefinitionsView extends StatelessWidget {
 }
 
 class _PartyList extends StatelessWidget {
-  const _PartyList({required this.rows, required this.empty, required this.onAdd});
+  const _PartyList({
+    required this.rows,
+    required this.empty,
+    required this.onAdd,
+  });
   final List rows;
   final String empty;
   final VoidCallback onAdd;
@@ -140,8 +154,9 @@ class _PartyList extends StatelessWidget {
                                 ? Icons.person_outline
                                 : Icons.engineering_outlined,
                             onTap: p.type == 'customer'
-                                ? () => context
-                                    .push('/customers/${p.id}/statement')
+                                ? () => context.push(
+                                    '/customers/${p.id}/statement',
+                                  )
                                 : () {},
                           ),
                       ],
@@ -166,7 +181,11 @@ class _PartyList extends StatelessWidget {
 }
 
 class _NamedList extends StatelessWidget {
-  const _NamedList({required this.rows, required this.empty, required this.onAdd});
+  const _NamedList({
+    required this.rows,
+    required this.empty,
+    required this.onAdd,
+  });
   final List rows;
   final String empty;
   final VoidCallback onAdd;
@@ -222,8 +241,14 @@ Future<void> _promptName(
       title: Text(label),
       content: TextField(controller: controller, autofocus: true),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حفظ')),
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('إلغاء'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('حفظ'),
+        ),
       ],
     ),
   );
@@ -265,9 +290,15 @@ class _AddPartyScreenState extends State<AddPartyScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          TextField(controller: _name, decoration: const InputDecoration(labelText: 'الاسم')),
+          TextField(
+            controller: _name,
+            decoration: const InputDecoration(labelText: 'الاسم'),
+          ),
           const SizedBox(height: 12),
-          TextField(controller: _phone, decoration: const InputDecoration(labelText: 'الهاتف')),
+          TextField(
+            controller: _phone,
+            decoration: const InputDecoration(labelText: 'الهاتف'),
+          ),
           if (isCustomer) ...[
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(

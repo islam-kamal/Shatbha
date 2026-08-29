@@ -5,11 +5,7 @@ import '../utils/format.dart';
 import '../theme/atelier_theme.dart';
 
 class BrandLockup extends StatelessWidget {
-  const BrandLockup({
-    super.key,
-    this.size = BrandSize.medium,
-    this.slogan,
-  });
+  const BrandLockup({super.key, this.size = BrandSize.medium, this.slogan});
 
   final BrandSize size;
   final String? slogan;
@@ -44,10 +40,9 @@ class BrandLockup extends StatelessWidget {
           Text(
             slogan!,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: c.ivoryMuted,
-                  fontSize: 13,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: c.ivoryMuted, fontSize: 13),
           ),
         ],
         const SizedBox(height: 12),
@@ -98,17 +93,17 @@ class ScreenTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: c.brass,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(color: c.brass),
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 4),
           Text(
             '— $subtitle —',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: c.ivoryMuted,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: c.ivoryMuted),
           ),
         ],
         const SizedBox(height: 8),
@@ -182,10 +177,7 @@ class AtelierButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 20),
-            const SizedBox(width: 8),
-          ],
+          if (icon != null) ...[Icon(icon, size: 20), const SizedBox(width: 8)],
           Text(label),
         ],
       ),
@@ -215,7 +207,13 @@ class KpiStrip extends StatelessWidget {
 }
 
 class KpiItem {
-  const KpiItem(this.label, this.value, {this.tint, this.icon, this.onInk = false});
+  const KpiItem(
+    this.label,
+    this.value, {
+    this.tint,
+    this.icon,
+    this.onInk = false,
+  });
   final String label;
   final String value;
   final Color? tint;
@@ -239,7 +237,9 @@ class _KpiCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(14),
-        border: tinted ? null : Border.all(color: c.brass.withValues(alpha: 0.35)),
+        border: tinted
+            ? null
+            : Border.all(color: c.brass.withValues(alpha: 0.35)),
       ),
       child: Column(
         children: [
@@ -289,7 +289,10 @@ class LedgerList extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
         final row = rows[i];
-        return LedgerCard(row: row, onTap: onTap == null ? null : () => onTap!(row));
+        return LedgerCard(
+          row: row,
+          onTap: onTap == null ? null : () => onTap!(row),
+        );
       },
     );
   }
@@ -480,25 +483,25 @@ class StatusView extends StatelessWidget {
     this.body = 'أضف أول قيد ليظهر هنا.',
     this.actionLabel,
     this.onAction,
-  })  : icon = Icons.inbox_outlined,
-        forbidden = false;
+  }) : icon = Icons.inbox_outlined,
+       forbidden = false;
 
   const StatusView.error({
     super.key,
     this.body = 'تعذر تحميل البيانات.',
     this.actionLabel = 'إعادة المحاولة',
     this.onAction,
-  })  : title = 'حدث خطأ',
-        icon = Icons.error_outline,
-        forbidden = false;
+  }) : title = 'حدث خطأ',
+       icon = Icons.error_outline,
+       forbidden = false;
 
   const StatusView.forbidden({super.key})
-      : title = 'غير مسموح',
-        body = 'هذا التقرير متاح للمدير فقط.',
-        actionLabel = null,
-        onAction = null,
-        icon = Icons.lock_outline,
-        forbidden = true;
+    : title = 'غير مسموح',
+      body = 'هذا التقرير متاح للمدير فقط.',
+      actionLabel = null,
+      onAction = null,
+      icon = Icons.lock_outline,
+      forbidden = true;
 
   final String title;
   final String body;
@@ -528,9 +531,9 @@ class StatusView extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               title,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: c.brass,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(color: c.brass),
             ),
             const SizedBox(height: 8),
             const BrassDiamond(),
@@ -539,9 +542,9 @@ class StatusView extends StatelessWidget {
               body,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: c.ivoryMuted,
-                    height: 1.6,
-                  ),
+                color: c.ivoryMuted,
+                height: 1.6,
+              ),
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 24),
@@ -624,7 +627,7 @@ class HomeNavTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.atelier;
     return Material(
-      color: c.raised.withValues(alpha: 0.72),
+      color: c.ivory,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -632,7 +635,10 @@ class HomeNavTile extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: c.brass.withValues(alpha: 0.85), width: 1),
+            border: Border.all(
+              color: c.brass.withValues(alpha: 0.85),
+              width: 1,
+            ),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
@@ -650,7 +656,7 @@ class HomeNavTile extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                     height: 1.35,
-                    color: c.ivory,
+                    color: c.stone,
                   ),
                 ),
               ],
@@ -715,7 +721,11 @@ class HubRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
-                      style: TextStyle(color: subColor, fontSize: 12, height: 1.4),
+                      style: TextStyle(
+                        color: subColor,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
                     ),
                   ],
                 ],
@@ -773,8 +783,7 @@ class DarkMenuCard extends StatelessWidget {
         children: [
           for (var i = 0; i < children.length; i++) ...[
             children[i],
-            if (i < children.length - 1)
-              Divider(height: 1, color: c.muted),
+            if (i < children.length - 1) Divider(height: 1, color: c.muted),
           ],
         ],
       ),
@@ -793,10 +802,10 @@ class SectionLabel extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: context.atelier.brass,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            ),
+          color: context.atelier.brass,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+        ),
       ),
     );
   }
@@ -869,10 +878,7 @@ class FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      child: Text(text, style: Theme.of(context).textTheme.titleMedium),
     );
   }
 }
@@ -920,7 +926,11 @@ Future<void> showAtelierSuccess(
               Text(
                 body,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: c.ivoryMuted, height: 1.5, fontSize: 14),
+                style: TextStyle(
+                  color: c.ivoryMuted,
+                  height: 1.5,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 22),
               AtelierButton(

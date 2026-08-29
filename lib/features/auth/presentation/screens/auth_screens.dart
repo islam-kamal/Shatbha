@@ -29,8 +29,10 @@ class _SplashScreenState extends State<SplashScreen> {
         if (state is AuthGuest) context.go('/login');
       },
       child: Scaffold(
-        body: SafeArea(
+        body: Center(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
               const BrandLockup(

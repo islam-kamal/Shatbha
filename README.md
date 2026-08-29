@@ -113,26 +113,50 @@ lib/
     auth/
       data/           datasources / models / repositories
       injection.dart  GetIt registrations for this feature
-      presentation/   cubit (or bloc) + screens + widgets
+      presentation/
+        cubit/        cubit (or bloc) + matching state file
+        screens/
     catalog/  journal/  expenses/  jobs/  reports/  company/  extra/  sync/  shell/
 ```
 
 `core/di/injection.dart` registers storage, Dio, and the database, then calls each feature’s `registerX(sl)`.
+
+**Cubit and state files**
+
+Every feature cubit is two files (auth is a Bloc, so it also has events). The cubit/bloc file **exports** its state so screens keep importing one path.
+
+```
+presentation/cubit/
+  foo_cubit.dart   # Cubit class; `export 'foo_state.dart'`
+  foo_state.dart    # State class
+```
+
+| Feature | Files | Types |
+|---|---|---|
+| auth | `auth_bloc.dart`, `auth_event.dart`, `auth_state.dart` | `AuthBloc` / `AuthEvent` / `AuthState` |
+| catalog | `catalog_cubit.dart`, `catalog_state.dart` | `DefinitionsCubit` / `DefinitionsState` |
+| journal | `journal_cubit.dart`, `journal_state.dart` | `JournalCubit` / `JournalState` |
+| shell | `date_range_cubit.dart`, `date_range_state.dart` | `DateRangeCubit` / `DateRange` |
+| sync | `sync_cubit.dart`, `sync_state.dart` | `SyncCubit` / `SyncState` (`pending` count) |
+
+`expenses`, `jobs`, `reports`, `company`, and `extra` have screens only — they call repositories (or `ExtraStore`) from the widget.
+
+`shell` is presentation-only (tabs + date range). `extra` stores demo data in `ExtraStore` (in-memory). Jobs and journal import `Party` from `catalog`.
 
 **How to find code**
 
 | I want to… | Open |
 |---|---|
 | Change a screen | `lib/features/<feature>/presentation/screens/` |
-| Change cubit / state | `lib/features/<feature>/presentation/cubit/` |
+| Change cubit logic | `lib/features/<feature>/presentation/cubit/*_cubit.dart` (auth: `*_bloc.dart`) |
+| Change cubit state | `lib/features/<feature>/presentation/cubit/*_state.dart` |
+| Change auth events | `lib/features/auth/presentation/cubit/auth_event.dart` |
 | Change API parsing | `lib/features/<feature>/data/datasources/` |
 | Change a model | `lib/features/<feature>/data/models/` |
 | Change cache / offline enqueue | `lib/features/<feature>/data/repositories/` |
 | Register a new class | `lib/features/<feature>/injection.dart` |
 | Shared button / KPI / overlay | `lib/core/widgets/` |
 | Local tables | `lib/core/database/app_database.dart` |
-
-`shell` is presentation-only (tabs + date range). `extra` stores demo data in `ExtraStore` (in-memory). Jobs and journal import `Party` from `catalog`.
 
 **Stack**
 
@@ -602,20 +626,26 @@ iOS/macOS: `flutter_secure_storage` does not yet support Swift Package Manager; 
 ```
 lib/
   main.dart
-  app.dart
+  app.dart                     AuthBloc + DateRangeCubit + SyncCubit
   core/
     config/env.dart
     database/app_database.dart
-    di/injection.dart          calls registerAuth, registerJournal, …
+    di/injection.dart          storage, Dio, DB, then registerAuth, …
     error/  logging/  network/  utils/
     theme/  widgets/  routing/  observers/
   features/
     auth/
       data/datasources|models|repositories
       injection.dart
-      presentation/cubit|screens
-    catalog/  journal/  expenses/  jobs/  reports/
-    company/  extra/  sync/  shell/
+      presentation/
+        cubit/                auth_bloc + auth_event + auth_state
+        screens/
+    catalog/                  catalog_cubit + catalog_state
+    journal/                  journal_cubit + journal_state
+    expenses/  jobs/  reports/ company/   screens + data, no cubit
+    extra/                    ExtraStore + screens + widgets/kit
+    sync/                     sync_cubit + sync_state
+    shell/                    date_range_cubit + date_range_state
 ```
 
 Backend (other repo): Laravel 12, Sanctum, `apiPrefix` `api/v1`, `EnsureAdmin` on income statement, Docker PHP 8.4 + Apache, deploy script + Neon/`DATABASE_URL`.

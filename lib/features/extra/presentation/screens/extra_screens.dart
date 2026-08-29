@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shatbha/core/core.dart';
+import 'package:shatbha/features/catalog/data/models/catalog_models.dart';
 import 'package:shatbha/features/catalog/data/repositories/catalog_repository.dart';
 
 import '../../data/datasources/extra_store.dart';
@@ -16,7 +17,10 @@ class OtherRevenuesScreen extends StatelessWidget {
       listenable: ExtraStore.instance,
       builder: (context, _) {
         final rows = ExtraStore.instance.revenues;
-        final total = rows.fold<double>(0, (s, e) => s + (double.tryParse(e.amount) ?? 0));
+        final total = rows.fold<double>(
+          0,
+          (s, e) => s + (double.tryParse(e.amount) ?? 0),
+        );
         return MoneyJournalScreen(
           title: 'إيرادات أخرى',
           heroLabel: 'إيرادات أخرى',
@@ -46,7 +50,11 @@ class AddRevenueScreen extends StatelessWidget {
       ],
       onSave: (v) {
         ExtraStore.instance.addRevenue(
-          DemoLine(title: v['title'] ?? 'إيراد', amount: v['amount'] ?? '0', date: v['date'] ?? ''),
+          DemoLine(
+            title: v['title'] ?? 'إيراد',
+            amount: v['amount'] ?? '0',
+            date: v['date'] ?? '',
+          ),
         );
       },
     );
@@ -152,8 +160,17 @@ class PettyCashScreen extends StatelessWidget {
         children: [
           KpiStrip(
             items: [
-              KpiItem('عهد مسلمة', '5000', icon: Icons.account_balance_wallet_outlined),
-              KpiItem('مصروف منها', '3200', tint: c.expenseTint, icon: Icons.arrow_downward),
+              KpiItem(
+                'عهد مسلمة',
+                '5000',
+                icon: Icons.account_balance_wallet_outlined,
+              ),
+              KpiItem(
+                'مصروف منها',
+                '3200',
+                tint: c.expenseTint,
+                icon: Icons.arrow_downward,
+              ),
               KpiItem('المتبقي', '1800', icon: Icons.savings_outlined),
             ],
           ),
@@ -192,7 +209,10 @@ class PettyCashScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: Text('معدل الصرف من العهدة', style: TextStyle(color: c.ivoryMuted, fontSize: 12)),
+                  child: Text(
+                    'معدل الصرف من العهدة',
+                    style: TextStyle(color: c.ivoryMuted, fontSize: 12),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
@@ -207,13 +227,22 @@ class PettyCashScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Text('3,200', style: TextStyle(color: c.ivoryMuted, fontSize: 12)),
+                    Text(
+                      '3,200',
+                      style: TextStyle(color: c.ivoryMuted, fontSize: 12),
+                    ),
                     const Spacer(),
-                    Text('5,000 ج.م', style: TextStyle(color: c.ivoryMuted, fontSize: 12)),
+                    Text(
+                      '5,000 ج.م',
+                      style: TextStyle(color: c.ivoryMuted, fontSize: 12),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text('المتبقي من العهدة', style: TextStyle(color: c.ivoryMuted)),
+                Text(
+                  'المتبقي من العهدة',
+                  style: TextStyle(color: c.ivoryMuted),
+                ),
                 Text(
                   formatEgp('1800'),
                   style: GoogleFonts.ibmPlexSansArabic(
@@ -279,7 +308,10 @@ class CubingScreen extends StatelessWidget {
                             ),
                             Text(
                               '${row.$2} × ${row.$3}',
-                              style: TextStyle(color: c.stone.withValues(alpha: 0.55), fontSize: 12),
+                              style: TextStyle(
+                                color: c.stone.withValues(alpha: 0.55),
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -343,9 +375,7 @@ class MaterialOutScreen extends StatelessWidget {
       builder: (context, _) {
         return MoneyJournalScreen(
           title: 'سحب خامات',
-          kpis: const [
-            KpiItem('صرف', '14000', tint: Color(0xFFE8C9BC)),
-          ],
+          kpis: const [KpiItem('صرف', '14000', tint: Color(0xFFE8C9BC))],
           lines: ExtraStore.instance.materialOut,
           addLabel: 'سحب خامة',
           addPath: '/inventory/out/add',
@@ -461,7 +491,8 @@ class _ItemsScreenState extends State<ItemsScreen> {
           final items = ExtraStore.instance.items.where((i) {
             if (i.finished != _finished) return false;
             if (_query.isEmpty) return true;
-            return i.name.contains(_query) || i.sku.toLowerCase().contains(_query.toLowerCase());
+            return i.name.contains(_query) ||
+                i.sku.toLowerCase().contains(_query.toLowerCase());
           }).toList();
           return Column(
             children: [
@@ -507,7 +538,8 @@ class _ItemsScreenState extends State<ItemsScreen> {
                         row: LedgerRow(
                           id: i,
                           title: item.name,
-                          subtitle: 'SKU: ${item.sku} · ${item.unit} ⇌ ${item.packUnit}',
+                          subtitle:
+                              'SKU: ${item.sku} · ${item.unit} ⇌ ${item.packUnit}',
                           amount: item.balance,
                           accent: c.teal,
                           badge: 'متوفر',
@@ -605,63 +637,86 @@ class AddSupplierScreen extends StatelessWidget {
   }
 }
 
-class WorkTypesScreen extends StatelessWidget {
+class WorkTypesScreen extends StatefulWidget {
   const WorkTypesScreen({super.key});
 
   @override
+  State<WorkTypesScreen> createState() => _WorkTypesScreenState();
+}
+
+class _WorkTypesScreenState extends State<WorkTypesScreen> {
+  List<NamedItem> _rows = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final rows = await sl<CatalogRepository>().workTypes();
+      if (mounted)
+        setState(() {
+          _rows = rows;
+          _loading = false;
+        });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: sl<CatalogRepository>().workTypes(),
-      builder: (context, snap) {
-        final rows = snap.data ?? [];
-        return Scaffold(
-          appBar: AppBar(
-            title: const ScreenTitle('أنواع الأعمال'),
-            toolbarHeight: 76,
+    return Scaffold(
+      appBar: AppBar(
+        title: const ScreenTitle('أنواع الأعمال'),
+        toolbarHeight: 76,
+      ),
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Text('إدارة أنواع الأعمال المستخدمة في المشاريع'),
           ),
-          body: Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
-                child: Text('إدارة أنواع الأعمال المستخدمة في المشاريع'),
-              ),
-              Expanded(
-                child: snap.connectionState != ConnectionState.done
-                    ? const Center(child: CircularProgressIndicator())
-                    : rows.isEmpty
-                        ? const StatusView.empty(title: 'لا توجد أنواع أعمال')
-                        : ListView(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            children: [
-                              DarkMenuCard(
-                                children: [
-                                  for (final row in rows)
-                                    HubRow(
-                                      dark: true,
-                                      title: row.name,
-                                      icon: Icons.handyman_outlined,
-                                      onTap: () {},
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-              ),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                  child: AtelierButton(
-                    label: 'إضافة نوع',
-                    icon: Icons.add,
-                    onPressed: () => context.push('/definitions'),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _rows.isEmpty
+                ? const StatusView.empty(title: 'لا توجد أنواع أعمال')
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    children: [
+                      IvoryMenuCard(
+                        children: [
+                          for (final row in _rows)
+                            HubRow(
+                              title: row.name,
+                              icon: Icons.handyman_outlined,
+                              onTap: () {},
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
           ),
-        );
-      },
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: AtelierButton(
+                label: 'إضافة نوع',
+                icon: Icons.add,
+                onPressed: () async {
+                  await context.push('/definitions');
+                  if (mounted) _load();
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -727,13 +782,20 @@ class SupplierReportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MoneyJournalScreen(
       title: 'تقرير الموردين',
-      kpis: [
-        KpiItem('مستحق', '70000'),
-        KpiItem('مدفوع', '3000'),
-      ],
+      kpis: [KpiItem('مستحق', '70000'), KpiItem('مدفوع', '3000')],
       lines: [
-        DemoLine(title: 'موردين غزل', subtitle: 'رصيد افتتاحي', amount: '70000', badge: 'غزل'),
-        DemoLine(title: 'مورد تشطيبات', subtitle: 'خامات', amount: '14000', badge: 'تشطيب'),
+        DemoLine(
+          title: 'موردين غزل',
+          subtitle: 'رصيد افتتاحي',
+          amount: '70000',
+          badge: 'غزل',
+        ),
+        DemoLine(
+          title: 'مورد تشطيبات',
+          subtitle: 'خامات',
+          amount: '14000',
+          badge: 'تشطيب',
+        ),
       ],
     );
   }
@@ -746,13 +808,20 @@ class MfgCustomersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MoneyJournalScreen(
       title: 'عملاء التصنيع',
-      kpis: [
-        KpiItem('تحصيل', '18500'),
-        KpiItem('متبقي', '4200'),
-      ],
+      kpis: [KpiItem('تحصيل', '18500'), KpiItem('متبقي', '4200')],
       lines: [
-        DemoLine(title: 'خالد', subtitle: 'فاتورة إنتاج', amount: '8500', date: '12/05/2026'),
-        DemoLine(title: 'بدير', subtitle: 'فاتورة إنتاج', amount: '10250', date: '18/05/2026'),
+        DemoLine(
+          title: 'خالد',
+          subtitle: 'فاتورة إنتاج',
+          amount: '8500',
+          date: '12/05/2026',
+        ),
+        DemoLine(
+          title: 'بدير',
+          subtitle: 'فاتورة إنتاج',
+          amount: '10250',
+          date: '18/05/2026',
+        ),
       ],
     );
   }
@@ -773,26 +842,43 @@ class _ChecksScreenState extends State<ChecksScreen> {
     final c = context.atelier;
     final rows = _receivable
         ? const [
-            DemoLine(title: '100001', subtitle: 'شركة النور للتجارة', amount: '2500', date: '2024/06/15'),
-            DemoLine(title: '100002', subtitle: 'خالد', amount: '7500', date: '2024/06/20'),
+            DemoLine(
+              title: '100001',
+              subtitle: 'شركة النور للتجارة',
+              amount: '2500',
+              date: '2024/06/15',
+            ),
+            DemoLine(
+              title: '100002',
+              subtitle: 'خالد',
+              amount: '7500',
+              date: '2024/06/20',
+            ),
           ]
         : const [
-            DemoLine(title: '200011', subtitle: 'موردين غزل', amount: '4000', date: '2024/06/18', negative: true),
+            DemoLine(
+              title: '200011',
+              subtitle: 'موردين غزل',
+              amount: '4000',
+              date: '2024/06/18',
+              negative: true,
+            ),
           ];
     return Scaffold(
-      appBar: AppBar(
-        title: const ScreenTitle('الشيكات'),
-        toolbarHeight: 76,
-      ),
+      appBar: AppBar(title: const ScreenTitle('الشيكات'), toolbarHeight: 76),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: [
-                Expanded(child: _tab(c, 'شيكات عملاء مستحقة القبض', true, '10000')),
+                Expanded(
+                  child: _tab(c, 'شيكات عملاء مستحقة القبض', true, '10000'),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _tab(c, 'شيكات موردين مستحقة الدفع', false, '4000')),
+                Expanded(
+                  child: _tab(c, 'شيكات موردين مستحقة الدفع', false, '4000'),
+                ),
               ],
             ),
           ),
@@ -830,7 +916,9 @@ class _ChecksScreenState extends State<ChecksScreen> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: on ? c.brass : c.brass.withValues(alpha: 0.2)),
+            border: Border.all(
+              color: on ? c.brass : c.brass.withValues(alpha: 0.2),
+            ),
           ),
           child: Column(
             children: [
@@ -838,10 +926,17 @@ class _ChecksScreenState extends State<ChecksScreen> {
                 label,
                 textAlign: TextAlign.center,
                 maxLines: 2,
-                style: TextStyle(color: c.ivory, fontSize: 12, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: c.ivory,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
-              Text(formatMoney(total), style: TextStyle(color: c.brass, fontWeight: FontWeight.w800)),
+              Text(
+                formatMoney(total),
+                style: TextStyle(color: c.brass, fontWeight: FontWeight.w800),
+              ),
             ],
           ),
         ),
@@ -931,7 +1026,10 @@ class PrintPreviewScreen extends StatelessWidget {
     final c = context.atelier;
     return Scaffold(
       appBar: AppBar(
-        title: const ScreenTitle('طباعة / تصدير', subtitle: 'معاينة قائمة الدخل'),
+        title: const ScreenTitle(
+          'طباعة / تصدير',
+          subtitle: 'معاينة قائمة الدخل',
+        ),
         toolbarHeight: 88,
       ),
       body: Column(
@@ -958,7 +1056,10 @@ class PrintPreviewScreen extends StatelessWidget {
                     ),
                     Text(
                       'للمحاسبة وإدارة الأعمال',
-                      style: TextStyle(color: c.stone.withValues(alpha: 0.6), fontSize: 12),
+                      style: TextStyle(
+                        color: c.stone.withValues(alpha: 0.6),
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     const BrassDiamond(),
@@ -973,7 +1074,10 @@ class PrintPreviewScreen extends StatelessWidget {
                     ),
                     Text(
                       'الفترة من 01 مايو 2024 إلى 31 مايو 2024',
-                      style: TextStyle(color: c.stone.withValues(alpha: 0.55), fontSize: 12),
+                      style: TextStyle(
+                        color: c.stone.withValues(alpha: 0.55),
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     _printRow(context, 'إجمالي التحصيل', '1000'),
@@ -983,7 +1087,10 @@ class PrintPreviewScreen extends StatelessWidget {
                     const Spacer(),
                     Text(
                       'تاريخ الطباعة: 15 مايو 2024 09:41 ص',
-                      style: TextStyle(color: c.stone.withValues(alpha: 0.5), fontSize: 11),
+                      style: TextStyle(
+                        color: c.stone.withValues(alpha: 0.5),
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -1000,7 +1107,11 @@ class PrintPreviewScreen extends StatelessWidget {
                     child: AtelierButton(
                       label: 'طباعة',
                       icon: Icons.print_outlined,
-                      onPressed: () => showAtelierSuccess(context, title: 'جاهز', body: 'أُرسل أمر الطباعة'),
+                      onPressed: () => showAtelierSuccess(
+                        context,
+                        title: 'جاهز',
+                        body: 'أُرسل أمر الطباعة',
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1008,7 +1119,8 @@ class PrintPreviewScreen extends StatelessWidget {
                     child: AtelierButton(
                       label: 'PDF',
                       kind: AtelierButtonKind.secondary,
-                      onPressed: () => showAtelierSuccess(context, body: 'تم تجهيز ملف PDF'),
+                      onPressed: () =>
+                          showAtelierSuccess(context, body: 'تم تجهيز ملف PDF'),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1016,7 +1128,10 @@ class PrintPreviewScreen extends StatelessWidget {
                     child: AtelierButton(
                       label: 'Excel',
                       kind: AtelierButtonKind.secondary,
-                      onPressed: () => showAtelierSuccess(context, body: 'تم تجهيز ملف Excel'),
+                      onPressed: () => showAtelierSuccess(
+                        context,
+                        body: 'تم تجهيز ملف Excel',
+                      ),
                     ),
                   ),
                 ],
@@ -1028,14 +1143,22 @@ class PrintPreviewScreen extends StatelessWidget {
     );
   }
 
-  Widget _printRow(BuildContext context, String label, String amount, {bool highlight = false}) {
+  Widget _printRow(
+    BuildContext context,
+    String label,
+    String amount, {
+    bool highlight = false,
+  }) {
     final c = context.atelier;
     final color = highlight ? c.brass : c.stone;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+          Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.w700),
+          ),
           const Spacer(),
           Text(
             formatMoney(amount),
@@ -1089,7 +1212,10 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           if (show) ...[
             const SizedBox(height: 12),
-            Text('3 نتائج مطابقة لـ «$q»', style: TextStyle(color: c.ivoryMuted)),
+            Text(
+              '3 نتائج مطابقة لـ «$q»',
+              style: TextStyle(color: c.ivoryMuted),
+            ),
             const SizedBox(height: 12),
             const SectionLabel('العملاء (1)'),
             DarkMenuCard(
@@ -1174,7 +1300,8 @@ class BackupScreen extends StatelessWidget {
           AtelierButton(
             label: 'إنشاء نسخة احتياطية الآن',
             icon: Icons.cloud_upload_outlined,
-            onPressed: () => showAtelierSuccess(context, body: 'تم إنشاء النسخة الاحتياطية'),
+            onPressed: () =>
+                showAtelierSuccess(context, body: 'تم إنشاء النسخة الاحتياطية'),
           ),
           const SizedBox(height: 10),
           AtelierButton(
@@ -1203,7 +1330,11 @@ class BackupScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'تنبيه مهم: قد تؤدي عملية الاستعادة إلى استبدال البيانات الحالية. يرجى التأكد من وجود نسخة احتياطية حديثة.',
-                    style: TextStyle(color: c.ivoryMuted, height: 1.5, fontSize: 13),
+                    style: TextStyle(
+                      color: c.ivoryMuted,
+                      height: 1.5,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -1228,8 +1359,18 @@ class FixedAssetsScreen extends StatelessWidget {
         KpiItem('صافي', '163000'),
       ],
       lines: [
-        DemoLine(title: 'سيارة نقل', subtitle: 'إهلاك سنوي', amount: '85000', badge: 'مركبة'),
-        DemoLine(title: 'معدات ورشة', subtitle: 'إنتاج', amount: '100000', badge: 'آلة'),
+        DemoLine(
+          title: 'سيارة نقل',
+          subtitle: 'إهلاك سنوي',
+          amount: '85000',
+          badge: 'مركبة',
+        ),
+        DemoLine(
+          title: 'معدات ورشة',
+          subtitle: 'إنتاج',
+          amount: '100000',
+          badge: 'آلة',
+        ),
       ],
     );
   }

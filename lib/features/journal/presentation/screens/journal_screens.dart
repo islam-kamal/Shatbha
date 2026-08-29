@@ -20,8 +20,7 @@ class JournalScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) {
         final range = context.read<DateRangeCubit>().state;
-        return JournalCubit(sl())
-          ..load(from: range.fromIso, to: range.toIso);
+        return JournalCubit(sl())..load(from: range.fromIso, to: range.toIso);
       },
       child: const _JournalView(),
     );
@@ -58,7 +57,7 @@ class _JournalView extends StatelessWidget {
               title: 'لا توجد حركات',
               body: 'أضف أول قيد ليظهر في اليومية.',
               actionLabel: 'قيد جديد',
-              onAction: () => context.push('/journal/add'),
+              onAction: () => _openAddThenReload(context),
             );
           }
           final cash = state.entries
@@ -109,7 +108,9 @@ class _JournalView extends StatelessWidget {
                           title: e.title,
                           subtitle:
                               '${_typeLabel(e.entryType)} · ${e.customerName ?? ''} · ${displayDate(e.entryDate)}',
-                          amount: e.entryType == 'labor' ? e.laborAmount : e.amount,
+                          amount: e.entryType == 'labor'
+                              ? e.laborAmount
+                              : e.amount,
                           accent: e.entryType == 'cash' ? c.teal : c.terracotta,
                           badge: e.entryType == 'cash' ? 'إيراد' : 'مصروف',
                         ),
@@ -124,7 +125,7 @@ class _JournalView extends StatelessWidget {
                   child: AtelierButton(
                     label: 'قيد جديد',
                     icon: Icons.add,
-                    onPressed: () => context.push('/journal/add'),
+                    onPressed: () => _openAddThenReload(context),
                   ),
                 ),
               ),
@@ -134,6 +135,13 @@ class _JournalView extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _openAddThenReload(BuildContext context) async {
+  await context.push('/journal/add');
+  if (!context.mounted) return;
+  final range = context.read<DateRangeCubit>().state;
+  context.read<JournalCubit>().load(from: range.fromIso, to: range.toIso);
 }
 
 String _typeLabel(String type) {
@@ -165,7 +173,10 @@ Future<void> _pickDates(BuildContext context) async {
   );
   cubit.setRange(from, to);
   if (context.mounted) {
-    context.read<JournalCubit>().load(from: cubit.state.fromIso, to: cubit.state.toIso);
+    context.read<JournalCubit>().load(
+      from: cubit.state.fromIso,
+      to: cubit.state.toIso,
+    );
   }
 }
 
@@ -202,10 +213,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const ScreenTitle('قيد جديد'),
-        toolbarHeight: 76,
-      ),
+      appBar: AppBar(title: const ScreenTitle('قيد جديد'), toolbarHeight: 76),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -231,7 +239,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
             decoration: const InputDecoration(labelText: 'نوع القيد'),
           ),
           const SizedBox(height: 12),
-          TextField(controller: _title, decoration: const InputDecoration(labelText: 'البيان')),
+          TextField(
+            controller: _title,
+            decoration: const InputDecoration(labelText: 'البيان'),
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _amount,
@@ -263,7 +274,10 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
                 'entry_date': formatDate(_date),
                 'entry_type': _type,
                 'title': _title.text.trim(),
-                if (_type == 'labor') 'labor_amount': amount else 'amount': amount,
+                if (_type == 'labor')
+                  'labor_amount': amount
+                else
+                  'amount': amount,
               });
               if (context.mounted) {
                 await showAtelierSuccess(context, body: 'تم تسجيل القيد بنجاح');
@@ -339,14 +353,25 @@ class _StatementScreenState extends State<StatementScreen> {
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
     final range = context.read<DateRangeCubit>().state;
-    sl<JournalRepository>()
-        .statement(widget.customerId, from: range.fromIso, to: range.toIso)
-        .then((data) {
-      if (mounted) setState(() => _data = data);
-    }).catchError((e) {
+    try {
+      final data = await sl<JournalRepository>().statement(
+        widget.customerId,
+        from: range.fromIso,
+        to: range.toIso,
+      );
+      if (mounted)
+        setState(() {
+          _data = data;
+          _error = null;
+        });
+    } catch (e) {
       if (mounted) setState(() => _error = e.toString());
-    });
+    }
   }
 
   @override
@@ -369,79 +394,82 @@ class _StatementScreenState extends State<StatementScreen> {
       body: _error != null
           ? StatusView.error(body: _error!)
           : data == null
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                      child: Text(
-                        data.customer.name,
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text(
-                        'الرصيد الحالي',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                    Text(
-                      formatEgp(data.closing),
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: c.brass,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    const BrassDiamond(),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: KpiStrip(
-                        items: [
-                          KpiItem('افتتاحي', data.opening, tint: c.identityTint),
-                          KpiItem('مبيعات', data.sales, tint: c.dateTint),
-                          KpiItem('تحصيل', data.collect, tint: c.cashTint),
-                          KpiItem('ختامي', data.closing, tint: c.calculatedTint),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: IvorySheet(
-                        child: LedgerList(
-                          rows: [
-                            for (final e in data.entries)
-                              LedgerRow(
-                                id: e.id,
-                                title: e.title,
-                                subtitle:
-                                    '${_typeLabel(e.entryType)} · ${displayDate(e.entryDate)}',
-                                amount: e.entryType == 'labor'
-                                    ? e.laborAmount
-                                    : e.amount,
-                                accent: e.entryType == 'cash'
-                                    ? c.teal
-                                    : c.terracotta,
-                                badge: e.entryType == 'cash' ? 'إيراد' : 'مصروف',
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                        child: AtelierButton(
-                          label: 'إضافة قيد',
-                          icon: Icons.add,
-                          onPressed: () => context.push('/journal/add'),
-                        ),
-                      ),
-                    ),
-                  ],
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Text(
+                    data.customer.name,
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    'الرصيد الحالي',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                Text(
+                  formatEgp(data.closing),
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: c.brass,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const BrassDiamond(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                  child: KpiStrip(
+                    items: [
+                      KpiItem('افتتاحي', data.opening, tint: c.identityTint),
+                      KpiItem('مبيعات', data.sales, tint: c.dateTint),
+                      KpiItem('تحصيل', data.collect, tint: c.cashTint),
+                      KpiItem('ختامي', data.closing, tint: c.calculatedTint),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: IvorySheet(
+                    child: LedgerList(
+                      rows: [
+                        for (final e in data.entries)
+                          LedgerRow(
+                            id: e.id,
+                            title: e.title,
+                            subtitle:
+                                '${_typeLabel(e.entryType)} · ${displayDate(e.entryDate)}',
+                            amount: e.entryType == 'labor'
+                                ? e.laborAmount
+                                : e.amount,
+                            accent: e.entryType == 'cash'
+                                ? c.teal
+                                : c.terracotta,
+                            badge: e.entryType == 'cash' ? 'إيراد' : 'مصروف',
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: AtelierButton(
+                      label: 'إضافة قيد',
+                      icon: Icons.add,
+                      onPressed: () async {
+                        await context.push('/journal/add');
+                        if (mounted) _load();
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -490,9 +518,21 @@ class _SupervisionScreenState extends State<SupervisionScreen> {
                 children: [
                   KpiStrip(
                     items: [
-                      KpiItem('النسبة', '${party.supervisionPercent}.00', tint: c.identityTint),
-                      KpiItem('التحصيل', collected.toStringAsFixed(2), tint: c.cashTint),
-                      KpiItem('أتعاب الإشراف', fee.toStringAsFixed(2), tint: c.calculatedTint),
+                      KpiItem(
+                        'النسبة',
+                        '${party.supervisionPercent}.00',
+                        tint: c.identityTint,
+                      ),
+                      KpiItem(
+                        'التحصيل',
+                        collected.toStringAsFixed(2),
+                        tint: c.cashTint,
+                      ),
+                      KpiItem(
+                        'أتعاب الإشراف',
+                        fee.toStringAsFixed(2),
+                        tint: c.calculatedTint,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -522,17 +562,22 @@ class _CustomerReportScreenState extends State<CustomerReportScreen> {
   @override
   void initState() {
     super.initState();
-    sl<ReportRepository>().customers().then((rows) {
-      if (mounted) setState(() {
-        _rows = rows;
-        _loading = false;
-      });
-    }).catchError((e) {
-      if (mounted) setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    });
+    sl<ReportRepository>()
+        .customers()
+        .then((rows) {
+          if (mounted)
+            setState(() {
+              _rows = rows;
+              _loading = false;
+            });
+        })
+        .catchError((e) {
+          if (mounted)
+            setState(() {
+              _error = e.toString();
+              _loading = false;
+            });
+        });
   }
 
   @override
@@ -546,33 +591,33 @@ class _CustomerReportScreenState extends State<CustomerReportScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? StatusView.error(body: _error!)
-              : _rows.isEmpty
-                  ? const StatusView.empty()
-                  : IvorySheet(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                        children: [
-                          for (final row in _rows)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: LedgerCard(
-                                row: LedgerRow(
-                                  id: row.id,
-                                  title: row.name,
-                                  subtitle:
-                                      'مبيعات ${formatMoney(row.sales)} · تحصيل ${formatMoney(row.collect)}',
-                                  amount: row.closing,
-                                  accent: c.brass,
-                                  badge: 'ختامي',
-                                ),
-                                onTap: () => context
-                                    .push('/customers/${row.id}/statement'),
-                              ),
-                            ),
-                        ],
+          ? StatusView.error(body: _error!)
+          : _rows.isEmpty
+          ? const StatusView.empty()
+          : IvorySheet(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                children: [
+                  for (final row in _rows)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: LedgerCard(
+                        row: LedgerRow(
+                          id: row.id,
+                          title: row.name,
+                          subtitle:
+                              'مبيعات ${formatMoney(row.sales)} · تحصيل ${formatMoney(row.collect)}',
+                          amount: row.closing,
+                          accent: c.brass,
+                          badge: 'ختامي',
+                        ),
+                        onTap: () =>
+                            context.push('/customers/${row.id}/statement'),
                       ),
                     ),
+                ],
+              ),
+            ),
     );
   }
 }
