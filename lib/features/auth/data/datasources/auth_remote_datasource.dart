@@ -17,6 +17,16 @@ class AuthRemoteDatasource {
     });
   }
 
+  Future<Map<String, dynamic>> vendorLogin(String email, String password) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/vendor/login',
+        data: {'email': email, 'password': password},
+      );
+      return res.data!;
+    });
+  }
+
   Future<AuthUser> me() {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>('/me');

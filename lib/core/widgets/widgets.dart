@@ -385,10 +385,16 @@ class LedgerRow {
 }
 
 class AppBottomNav extends StatelessWidget {
-  const AppBottomNav({super.key, required this.index, required this.onTap});
+  const AppBottomNav({
+    super.key,
+    required this.index,
+    required this.onTap,
+    this.vendorMode = false,
+  });
 
   final int index;
   final ValueChanged<int> onTap;
+  final bool vendorMode;
 
   @override
   Widget build(BuildContext context) {
@@ -399,6 +405,7 @@ class AppBottomNav extends StatelessWidget {
       (Icons.pie_chart_outline, Icons.pie_chart, 'تقارير'),
       (Icons.more_horiz, Icons.more_horiz, 'المزيد'),
     ];
+    final visible = vendorMode ? [items.first, items.last] : items;
     return Material(
       color: c.stone,
       child: SafeArea(
@@ -407,11 +414,11 @@ class AppBottomNav extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
           child: Row(
             children: [
-              for (var i = 0; i < items.length; i++)
+              for (var i = 0; i < visible.length; i++)
                 Expanded(
                   child: _NavItem(
-                    icon: index == i ? items[i].$2 : items[i].$1,
-                    label: items[i].$3,
+                    icon: index == i ? visible[i].$2 : visible[i].$1,
+                    label: visible[i].$3,
                     selected: index == i,
                     onTap: () => onTap(i),
                   ),

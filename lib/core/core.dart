@@ -1,6 +1,7 @@
 /// Shared kit used by every feature.
 library;
 
+export 'config/app_flavor.dart';
 export 'config/env.dart';
 export 'database/app_database.dart';
 export 'di/injection.dart';

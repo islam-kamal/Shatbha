@@ -7,7 +7,7 @@ sealed class Failure implements Exception {
 }
 
 class OfflineFailure extends Failure {
-  const OfflineFailure() : super('لا يوجد اتصال — العمل محفوظ محلياً');
+  const OfflineFailure([super.message = 'لا يوجد اتصال — العمل محفوظ محلياً']);
 }
 
 class UnauthorizedFailure extends Failure {

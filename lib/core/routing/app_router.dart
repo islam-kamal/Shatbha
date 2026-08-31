@@ -8,13 +8,22 @@ import '../../features/auth/presentation/cubit/auth_bloc.dart';
 import '../../features/auth/presentation/screens/auth_screens.dart';
 import '../../features/catalog/presentation/screens/catalog_screens.dart';
 import '../../features/company/presentation/screens/company_screens.dart';
+import '../../features/contractors_marketplace/presentation/screens/contractor_marketplace_screens.dart';
+import '../../features/design/presentation/screens/design_screens.dart';
 import '../../features/expenses/presentation/screens/expense_screens.dart';
 import '../../features/extra/presentation/screens/estate_screens.dart';
 import '../../features/extra/presentation/screens/extra_screens.dart';
+import '../../features/handover/presentation/screens/handover_screens.dart';
 import '../../features/jobs/presentation/screens/job_screens.dart';
 import '../../features/journal/presentation/screens/journal_screens.dart';
+import '../../features/materials/presentation/screens/material_screens.dart';
+import '../../features/projects/presentation/screens/project_screens.dart';
+import '../../features/procurement/presentation/screens/procurement_screens.dart';
+import '../../features/project_manager/presentation/screens/pm_screens.dart';
 import '../../features/reports/presentation/screens/pnl_screen.dart';
 import '../../features/shell/presentation/screens/shell_screens.dart';
+import '../../features/vendors/presentation/screens/vendor_screens.dart';
+import '../../features/warehouse/presentation/screens/warehouse_screens.dart';
 import '../logging/app_log.dart';
 import '../observers/nav_observer.dart';
 
@@ -37,6 +46,13 @@ GoRouter createRouter(AuthBloc authBloc) {
       if (auth is AuthInitial && !onSplash) target = '/splash';
       if (auth is AuthGuest && !onLogin) target = '/login';
       if (loggedIn && (onLogin || onSplash)) target = '/home';
+      if (loggedIn && auth.user.isVendor) {
+        if (loc == '/ledger' || loc == '/reports') {
+          target = '/home';
+        } else if (_isCompanyOnlyPath(loc)) {
+          target = '/home';
+        }
+      }
       if (target != null) {
         AppLog.i('redirect $loc → $target (${auth.runtimeType})', tag: 'nav');
       }
@@ -102,8 +118,8 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (_, state) => PayJobScreen(jobId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(parentNavigatorKey: _rootKey, path: '/petty-cash', builder: (_, __) => const PettyCashScreen()),
-      GoRoute(parentNavigatorKey: _rootKey, path: '/cubing', builder: (_, __) => const CubingScreen()),
-      GoRoute(parentNavigatorKey: _rootKey, path: '/cubing/add', builder: (_, __) => const AddCubingLineScreen()),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/cubing', redirect: (_, __) => '/design'),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/cubing/add', redirect: (_, __) => '/design'),
       GoRoute(parentNavigatorKey: _rootKey, path: '/pnl', builder: (_, __) => const PnLScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/pnl/food', builder: (_, __) => const FoodIncomeScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/pnl/aluminum', builder: (_, __) => const AluminumIncomeScreen()),
@@ -141,8 +157,218 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(parentNavigatorKey: _rootKey, path: '/packs', builder: (_, __) => const PacksScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/search', builder: (_, __) => const SearchScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/backup', builder: (_, __) => const BackupScreen()),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/projects', builder: (_, __) => const ProjectsScreen()),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/projects/add', builder: (_, __) => const AddProjectScreen()),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/design', builder: (_, __) => const DesignHubScreen()),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/vendors', builder: (_, __) => const VendorsScreen()),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/vendors/:id',
+        builder: (_, state) => VendorProfileScreen(
+          vendorId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/materials', builder: (_, __) => const MaterialsCatalogScreen()),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/materials/supplier/:id',
+        builder: (_, state) => SupplierProductsScreen(
+          supplierId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/contractors', builder: (_, __) => const ContractorsMarketplaceScreen()),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/contractors/:id/request-quote',
+        builder: (_, state) => RequestQuoteScreen(
+          contractorId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/quotes',
+        builder: (_, state) => QuotesListScreen(
+          projectId: _queryInt(state.uri.queryParameters['project_id']),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id',
+        builder: (_, state) => ProjectDetailScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/design',
+        builder: (_, state) => ProjectDesignScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/design/mood-board/add',
+        builder: (_, state) => AddMoodBoardItemScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/design/floor-plans/add',
+        builder: (_, state) => AddFloorPlanScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/design/boq/add',
+        builder: (_, state) => AddBoqLineScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/materials',
+        builder: (_, state) => ProjectMaterialsScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/materials/add',
+        builder: (_, state) => AddProjectMaterialScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+          productId: int.parse(state.uri.queryParameters['product_id'] ?? '0'),
+          productName: state.uri.queryParameters['name'],
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/pm',
+        builder: (_, state) => ProjectManagerScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/procurement',
+        builder: (_, state) => ProcurementListScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/warehouse',
+        builder: (_, state) => WarehouseHubScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/handover',
+        builder: (_, state) => HandoverScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/procurement',
+        builder: (_, __) => const ProcurementListScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/procurement/add',
+        builder: (_, state) => CreatePurchaseOrderScreen(
+          projectId: _queryInt(state.uri.queryParameters['projectId']),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/procurement/:id/receive',
+        builder: (_, state) => ReceiveGoodsScreen(
+          poId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/warehouse',
+        builder: (_, __) => const WarehouseHubScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/warehouse/list',
+        builder: (_, __) => const WarehouseListScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/warehouse/stock',
+        builder: (_, state) => StockLevelsScreen(
+          warehouseId: _queryInt(state.uri.queryParameters['warehouseId']),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/warehouse/issue',
+        builder: (_, state) => IssueToProjectScreen(
+          projectId: _queryInt(state.uri.queryParameters['projectId']),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/warehouse/transfer',
+        builder: (_, __) => const TransferStockScreen(),
+      ),
     ],
   );
+}
+
+int? _queryInt(String? raw) {
+  if (raw == null || raw.isEmpty) return null;
+  return int.tryParse(raw);
+}
+
+const _companyOnlyPrefixes = [
+  '/projects',
+  '/journal',
+  '/expenses',
+  '/revenues',
+  '/jobs',
+  '/pnl',
+  '/reports',
+  '/definitions',
+  '/work-types',
+  '/items',
+  '/customers',
+  '/suppliers',
+  '/inventory',
+  '/production',
+  '/manufacturing',
+  '/petty-cash',
+  '/general-journal',
+  '/contracting',
+  '/partners',
+  '/balance-sheet',
+  '/fixed-assets',
+  '/company',
+  '/packs',
+  '/backup',
+  '/checks',
+  '/units',
+  '/installments',
+  '/design',
+  '/procurement',
+  '/warehouse',
+  '/print',
+  '/search',
+  '/cubing',
+];
+
+bool _isCompanyOnlyPath(String loc) {
+  if (loc.startsWith('/contractors/')) return true;
+  for (final prefix in _companyOnlyPrefixes) {
+    if (loc == prefix || loc.startsWith('$prefix/')) return true;
+  }
+  return false;
 }
 
 class GoRouterRefreshStream extends ChangeNotifier {

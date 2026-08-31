@@ -10,15 +10,25 @@ import '../models/auth_models.dart';
 class AuthRepository {
   AuthRepository(this._api, this._db, this._storage);
 
+  static const _tokenKey = 'token';
+  static const _authKindKey = 'auth_kind';
+  static const _companyKind = 'company';
+  static const _vendorKind = 'vendor';
+
   final AuthRemoteDatasource _api;
   final AppDatabase _db;
   final FlutterSecureStorage _storage;
 
   Future<AuthUser?> restore() async {
-    final token = await _storage.read(key: 'token');
+    final token = await _storage.read(key: _tokenKey);
     if (token == null || token.isEmpty) {
       AppLog.d('no stored token', tag: 'auth');
       return null;
+    }
+    final kind = await _storage.read(key: _authKindKey) ?? _companyKind;
+    if (kind == _vendorKind) {
+      AppLog.d('stored vendor token, restoring from cache', tag: 'auth');
+      return cachedUser();
     }
     AppLog.d('stored token present, calling /me', tag: 'auth');
     try {
@@ -33,13 +43,41 @@ class AuthRepository {
 
   Future<AuthUser> login(String email, String password) async {
     AppLog.d('POST /login $email', tag: 'auth');
+    try {
+      return await _loginCompany(email, password);
+    } on ValidationFailure {
+      AppLog.d('company login failed, trying /vendor/login', tag: 'auth');
+      return _loginVendor(email, password);
+    }
+  }
+
+  Future<AuthUser> _loginCompany(String email, String password) async {
     final payload = await _api.login(email, password);
     final token = payload['token'] as String;
     final user = AuthUser.fromJson(payload['user'] as Map<String, dynamic>);
-    await _storage.write(key: 'token', value: token);
-    await cacheUser(user);
-    AppLog.d('token saved for ${user.email}', tag: 'auth');
+    await _persistSession(token: token, kind: _companyKind, user: user);
     return user;
+  }
+
+  Future<AuthUser> _loginVendor(String email, String password) async {
+    AppLog.d('POST /vendor/login $email', tag: 'auth');
+    final payload = await _api.vendorLogin(email, password);
+    final token = payload['token'] as String;
+    final user =
+        AuthUser.fromVendorJson(payload['vendor'] as Map<String, dynamic>);
+    await _persistSession(token: token, kind: _vendorKind, user: user);
+    return user;
+  }
+
+  Future<void> _persistSession({
+    required String token,
+    required String kind,
+    required AuthUser user,
+  }) async {
+    await _storage.write(key: _tokenKey, value: token);
+    await _storage.write(key: _authKindKey, value: kind);
+    await cacheUser(user);
+    AppLog.d('token saved for ${user.email} ($kind)', tag: 'auth');
   }
 
   Future<void> logout() async {
@@ -48,7 +86,8 @@ class AuthRepository {
     } on Failure {
       // still clear local session
     }
-    await _storage.delete(key: 'token');
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _authKindKey);
   }
 
   Future<AuthUser?> cachedUser() async {

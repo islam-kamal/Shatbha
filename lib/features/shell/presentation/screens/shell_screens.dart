@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:shatbha/core/core.dart';
 import 'package:shatbha/features/auth/presentation/cubit/auth_bloc.dart';
+import 'package:shatbha/features/auth/data/models/auth_models.dart';
 import 'package:shatbha/features/sync/presentation/cubit/sync_cubit.dart';
 import '../cubit/date_range_cubit.dart';
 
@@ -13,11 +14,24 @@ class ShellScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthBloc>().state;
+    final vendorMode =
+        auth is AuthAuthenticated && auth.user.isVendor;
+    final shellIndex = navigationShell.currentIndex;
+    final navIndex = vendorMode ? (shellIndex >= 3 ? 1 : 0) : shellIndex;
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: AppBottomNav(
-        index: navigationShell.currentIndex,
-        onTap: (i) => navigationShell.goBranch(i),
+        vendorMode: vendorMode,
+        index: navIndex,
+        onTap: (i) {
+          if (vendorMode) {
+            navigationShell.goBranch(i == 0 ? 0 : 3);
+          } else {
+            navigationShell.goBranch(i);
+          }
+        },
       ),
     );
   }
@@ -28,14 +42,23 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthBloc>().state;
+    final user = auth is AuthAuthenticated ? auth.user : null;
+    final isVendor = user?.isVendor ?? false;
+    final slogan = isVendor
+        ? (user!.role == 'supplier'
+            ? 'حساب مورد — إدارة منتجاتك'
+            : 'حساب مقاول — طلبات العروض')
+        : 'أتيليه التشطيبات والمقاولات';
+
     return Scaffold(
       body: Column(
         children: [
-          const SafeArea(
+          SafeArea(
             bottom: false,
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
-              child: BrandLockup(slogan: 'أتيليه التشطيبات والمقاولات'),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: BrandLockup(slogan: slogan),
             ),
           ),
           Expanded(
@@ -46,54 +69,87 @@ class HomeScreen extends StatelessWidget {
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
                 childAspectRatio: 1.22,
-                children: [
-                  HomeNavTile(
-                    title: 'يومية العملاء',
-                    icon: Icons.groups_outlined,
-                    onTap: () => context.push('/journal'),
-                  ),
-                  HomeNavTile(
-                    title: 'التعريفات',
-                    icon: Icons.menu_book_outlined,
-                    onTap: () => context.push('/definitions'),
-                  ),
-                  HomeNavTile(
-                    title: 'مصاريف إدارية',
-                    icon: Icons.account_balance_wallet_outlined,
-                    onTap: () => context.push('/expenses'),
-                  ),
-                  HomeNavTile(
-                    title: 'كشف حساب عميل',
-                    icon: Icons.receipt_long_outlined,
-                    onTap: () => context.push('/customers/picker'),
-                  ),
-                  HomeNavTile(
-                    title: 'اتفاق مقاولين',
-                    icon: Icons.handshake_outlined,
-                    onTap: () => context.push('/jobs'),
-                  ),
-                  HomeNavTile(
-                    title: 'تقرير العملاء',
-                    icon: Icons.bar_chart,
-                    onTap: () => context.push('/reports/customers'),
-                  ),
-                  HomeNavTile(
-                    title: 'قائمة الدخل',
-                    icon: Icons.show_chart,
-                    onTap: () => context.push('/pnl'),
-                  ),
-                  HomeNavTile(
-                    title: 'تقرير المقاولين',
-                    icon: Icons.engineering_outlined,
-                    onTap: () => context.push('/reports/contractors'),
-                  ),
-                ],
+                children: isVendor
+                    ? _vendorTiles(context, user!)
+                    : _companyTiles(context),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  List<Widget> _companyTiles(BuildContext context) => [
+        HomeNavTile(
+          title: 'المشاريع',
+          icon: Icons.apartment_outlined,
+          onTap: () => context.push('/projects'),
+        ),
+        HomeNavTile(
+          title: 'التصميم',
+          icon: Icons.palette_outlined,
+          onTap: () => context.push('/design'),
+        ),
+        HomeNavTile(
+          title: 'المقاولون',
+          icon: Icons.engineering_outlined,
+          onTap: () => context.push('/contractors'),
+        ),
+        HomeNavTile(
+          title: 'المواد',
+          icon: Icons.inventory_2_outlined,
+          onTap: () => context.push('/materials'),
+        ),
+        HomeNavTile(
+          title: 'يومية العملاء',
+          icon: Icons.groups_outlined,
+          onTap: () => context.push('/journal'),
+        ),
+        HomeNavTile(
+          title: 'مصاريف إدارية',
+          icon: Icons.account_balance_wallet_outlined,
+          onTap: () => context.push('/expenses'),
+        ),
+        HomeNavTile(
+          title: 'اتفاق مقاولين',
+          icon: Icons.handshake_outlined,
+          onTap: () => context.push('/jobs'),
+        ),
+        HomeNavTile(
+          title: 'قائمة الدخل',
+          icon: Icons.show_chart,
+          onTap: () => context.push('/pnl'),
+        ),
+      ];
+
+  List<Widget> _vendorTiles(BuildContext context, AuthUser user) {
+    if (user.role == 'supplier') {
+      return [
+        HomeNavTile(
+          title: 'منتجاتي',
+          icon: Icons.inventory_2_outlined,
+          onTap: () => context.push('/materials/supplier/${user.id}'),
+        ),
+        HomeNavTile(
+          title: 'ملفي',
+          icon: Icons.storefront_outlined,
+          onTap: () => context.push('/vendors/${user.id}'),
+        ),
+      ];
+    }
+    return [
+      HomeNavTile(
+        title: 'طلبات العروض',
+        icon: Icons.request_quote_outlined,
+        onTap: () => context.push('/quotes'),
+      ),
+      HomeNavTile(
+        title: 'ملفي',
+        icon: Icons.engineering_outlined,
+        onTap: () => context.push('/vendors/${user.id}'),
+      ),
+    ];
   }
 }
 

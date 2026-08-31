@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Shatbha · local",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_local.dart",
+      "preLaunchTask": "adb reverse (local API)",
+      "toolArgs": ["--flavor", "local"]
+    },
+    {
+      "name": "Shatbha · production",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_production.dart",
+      "toolArgs": ["--flavor", "production"]
+    },
+    {
+      "name": "Shatbha · local (no Android flavor)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_local.dart",
+      "preLaunchTask": "adb reverse (local API)"
+    },
+    {
+      "name": "Shatbha · production (no Android flavor)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main_production.dart"
+    }
+  ]
+}

@@ -155,7 +155,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'admin@shatbha.test  ·  clerk@shatbha.test\npassword',
+                  'admin@shatbha.test  ·  clerk@shatbha.test\n'
+                  'contractor@market.test  ·  supplier@market.test\n'
+                  'password',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),

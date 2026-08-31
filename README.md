@@ -29,11 +29,12 @@ This repository is the **Flutter app**. The Laravel API lives in a separate repo
 11. [Roles and access](#roles-and-access)
 12. [Logging](#logging)
 13. [HTTP API](#http-api)
-14. [Run the Flutter app](#run-the-flutter-app)
-15. [Run the Laravel API locally](#run-the-laravel-api-locally)
-16. [Deploy the API](#deploy-the-api)
-17. [Build and ship the Flutter app](#build-and-ship-the-flutter-app)
-18. [Project layout](#project-layout)
+14. [Quick start — run server and app](#quick-start--run-server-and-app)
+15. [Run the Laravel API (first-time setup)](#run-the-laravel-api-first-time-setup)
+16. [Run the Flutter app (flavors)](#run-the-flutter-app-flavors)
+17. [Deploy the API](#deploy-the-api)
+18. [Build and ship the Flutter app](#build-and-ship-the-flutter-app)
+19. [Project layout](#project-layout)
 
 ---
 
@@ -117,6 +118,8 @@ lib/
         cubit/        cubit (or bloc) + matching state file
         screens/
     catalog/  journal/  expenses/  jobs/  reports/  company/  extra/  sync/  shell/
+    projects/  vendors/  materials/  contractors_marketplace/  design/
+    project_manager/  procurement/  warehouse/  handover/  media/
 ```
 
 `core/di/injection.dart` registers storage, Dio, and the database, then calls each feature’s `registerX(sl)`.
@@ -432,7 +435,7 @@ Package `logger` via `lib/core/logging/app_log.dart`.
 | `http` | Method, URI, status, duration; headers/body **redacted** (`password`, `token`, `Authorization`, …) |
 | `bloc` | create, event, change, transition, error, close |
 | `nav` | push/pop/replace, go_router redirects |
-| `auth` / `sync` / `journal` / … | Domain |
+| `auth` / `sync` / `journal` / `projects` / … | Domain |
 | `flutter` | `FlutterError`, `PlatformDispatcher`, `ErrorWidget` |
 
 `AuthLoginRequested.toString()` omits the password. Never log the Sanctum token.
@@ -474,64 +477,165 @@ Base path: `{API_BASE_URL}/api/v1`. JSON `Accept: application/json`.
 
 Query dates: `from`, `to` as `YYYY-MM-DD`.
 
+### Ecosystem (marketplace + project lifecycle)
+
+Public vendor auth:
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/vendor/register` | `{ type, name, email, password, phone?, bio?, service_area? }` |
+| POST | `/vendor/login` | `{ email, password }` → Sanctum token (vendor ability) |
+
+Seeded marketplace vendors (password `password`):
+
+| Email | Type |
+|---|---|
+| `contractor@market.test` | contractor |
+| `supplier@market.test` | supplier |
+
+Authenticated ecosystem routes (company user unless noted):
+
+| Area | Paths |
+|---|---|
+| Projects | `GET/POST /projects`, `GET/PUT /projects/{id}` |
+| Vendors | `GET /vendors`, `GET /vendors/{id}` |
+| Media | `POST /media` (multipart upload) |
+| Materials | `GET /products`, vendor `GET/POST/PUT/DELETE /vendor/products`, `GET/POST /projects/{id}/materials` |
+| Quotes | `GET/POST /quotes`, `POST /quotes/{id}/respond` (vendor), `POST /quotes/{id}/accept|reject` |
+| Reviews | `GET/POST /projects/{id}/reviews` |
+| Design | `GET/POST /projects/{id}/design/boards`, inspiration, floor-plans, boq |
+| Project manager | `GET/POST /projects/{id}/pm/tasks`, milestones, timeline, budget |
+| Procurement | `GET/POST /purchase-orders`, `POST /purchase-orders/{id}/receive` |
+| Warehouse | `GET/POST /warehouses`, stock, movements, project delivery-notes |
+| Handover | `GET/POST /projects/{id}/handover/*`, `POST /projects/{id}/handover/complete` |
+
+Flutter features: `projects/`, `vendors/`, `materials/`, `contractors_marketplace/`, `design/`, `project_manager/`, `procurement/`, `warehouse/`, `handover/`, `media/`. Home hub tiles: المشاريع · التصميم · المقاولون · المواد plus finance (journal, expenses, jobs, P&amp;L). Project detail links to all sub-modules.
+
 ---
 
-## Run the Flutter app
+## Quick start — run server and app
 
-Requires a Flutter SDK (use [FVM](https://fvm.app) if the machine pins a version). Drift generated file: `lib/core/database/app_database.g.dart`.
+Use **local** flavor for daily work on your machine. Use **production** flavor to hit the hosted Northflank API (no local server needed).
+
+### Local development (two terminals)
+
+**Terminal 1 — Laravel API** (keep running):
+
+```bash
+cd Shatbha-backend          # clone once — see [first-time setup](#run-the-laravel-api-first-time-setup)
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+Verify:
+
+```bash
+curl -s http://127.0.0.1:8000/up
+curl -s -X POST http://127.0.0.1:8000/api/v1/login \
+  -H 'Accept: application/json' \
+  -d 'email=admin@shatbha.test&password=password'
+```
+
+**Terminal 2 — Flutter app** (from this repo):
 
 ```bash
 fvm flutter pub get
-# only if app_database.g.dart is missing or tables changed:
-fvm dart run build_runner build --delete-conflicting-outputs
-fvm flutter run
 ```
 
-Default API is Northflank (`lib/core/config/env.dart`). **Full restart** after changing `--dart-define` (hot reload does not pick it up).
+| Target | Commands |
+|---|---|
+| **Android phone (USB)** | `./scripts/run_local_android.sh` |
+| **Android (manual)** | `adb -d reverse tcp:8000 tcp:8000` then `fvm flutter run --flavor local -t lib/main_local.dart` |
+| **iOS Simulator / macOS / desktop / web** | `fvm flutter run -t lib/main_local.dart` |
+
+**Cursor / VS Code:** Run and Debug → **Shatbha · local** (runs `adb reverse` automatically via `.vscode/tasks.json`).
+
+On boot you should see:
+
+```
+flavor=local API_BASE_URL=http://127.0.0.1:8000
+```
+
+Log in with `admin@shatbha.test` / `password` (prefilled on the login screen).
+
+#### Why `adb reverse` on Android?
+
+A physical phone’s `127.0.0.1` is the phone itself, not your Mac. This command forwards the phone’s port 8000 to your Mac’s Laravel:
 
 ```bash
-# Local Laravel (iOS / macOS / desktop / Chrome)
-fvm flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000
-
-# Android emulator (host loopback is 10.0.2.2)
-fvm flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+adb -d reverse tcp:8000 tcp:8000
 ```
 
-| Target | `API_BASE_URL` |
+Use `-d` when an **emulator and a USB phone** are both connected. Re-run after unplugging the phone.
+
+If login fails with **Connection refused**, Laravel is not running or `adb reverse` was not applied.
+
+#### Wi‑Fi only (no USB)
+
+On your Mac:
+
+```bash
+php artisan serve --host=0.0.0.0 --port=8000
+ipconfig getifaddr en0    # note your LAN IP, e.g. 192.168.91.70
+```
+
+On the app (replace with your real IP — **not** `192.168.x.x`):
+
+```bash
+fvm flutter run --flavor local -t lib/main_local.dart \
+  --dart-define=API_BASE_URL=http://192.168.91.70:8000
+```
+
+### Production (hosted API — no local server)
+
+Point the app at Northflank. Laravel on your Mac is **not** required.
+
+```bash
+fvm flutter run --flavor production -t lib/main_production.dart
+```
+
+Same demo users work against the hosted API (vendor accounts need `EcosystemSeeder` on the server — see backend README).
+
+### Test accounts
+
+| Email | Password | Use |
+|---|---|---|
+| `admin@shatbha.test` | `password` | Company admin — projects, journal, reports |
+| `clerk@shatbha.test` | `password` | Company clerk — no P&amp;L |
+| `contractor@market.test` | `password` | Vendor contractor — quotes, not company projects |
+| `supplier@market.test` | `password` | Vendor supplier — products catalog |
+
+Vendor logins use a different home screen (no company `/projects`).
+
+### Troubleshooting
+
+| Symptom | Fix |
 |---|---|
-| Northflank (default) | `https://p02--shatbha--9lqgqlp9drrc.code.run` |
-| iOS / macOS / desktop / Chrome (local) | `http://127.0.0.1:8000` |
-| Android emulator (local) | `http://10.0.2.2:8000` |
-| Physical phone vs LAN API | `http://<your-lan-ip>:8000` |
-
-If Android is pointed at `127.0.0.1`, the app logs a warning at boot.
-
-Analyze: `fvm flutter analyze lib`.
+| `Failed host lookup: 192.168.x.x` | Remove `--dart-define=API_BASE_URL=http://192.168.x.x:8000` from Run config; that is a README placeholder |
+| `Connection refused` on Android | Run `adb -d reverse tcp:8000 tcp:8000`; keep Laravel on `127.0.0.1:8000` |
+| Boot shows wrong API URL | **Full restart** (not hot reload) after changing flavor or dart-define |
+| `403` on `/projects` as vendor | Expected — use company admin or vendor home (quotes / products) |
+| Drift build errors | `fvm dart run build_runner build --delete-conflicting-outputs` |
 
 ---
 
-## Run the Laravel API locally
+## Run the Laravel API (first-time setup)
 
 Clone [Shatbha-backend](https://github.com/islam-kamal/Shatbha-backend). PHP 8.2+ (Docker image uses **8.4**) and Composer.
 
 **SQLite (default)**
 
 ```bash
+cd Shatbha-backend
 composer install
 touch database/database.sqlite
 cp .env.example .env
 php artisan key:generate
 php artisan migrate:fresh --seed
+php artisan db:seed --class=EcosystemSeeder   # vendor demo accounts
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
 API root: `http://127.0.0.1:8000/api/v1`.
-
-```bash
-curl -s -X POST http://127.0.0.1:8000/api/v1/login \
-  -H 'Accept: application/json' \
-  -d 'email=admin@shatbha.test&password=password'
-```
 
 **Optional MySQL** (`docker-compose.yml` in the backend repo):
 
@@ -539,9 +643,52 @@ curl -s -X POST http://127.0.0.1:8000/api/v1/login \
 docker compose up -d mysql
 # .env: DB_CONNECTION=mysql, DB_DATABASE=shatbha, DB_USERNAME=shatbha, DB_PASSWORD=secret
 php artisan migrate:fresh --seed
+php artisan db:seed --class=EcosystemSeeder
 ```
 
 Tests: `php artisan test`.
+
+---
+
+## Run the Flutter app (flavors)
+
+Requires [FVM](https://fvm.app) or a matching Flutter SDK. Generated Drift file: `lib/core/database/app_database.g.dart`.
+
+```bash
+fvm flutter pub get
+# only if app_database.g.dart is missing or tables changed:
+fvm dart run build_runner build --delete-conflicting-outputs
+```
+
+| Flavor | Entry point | API |
+|---|---|---|
+| **local** | `lib/main_local.dart` | `http://127.0.0.1:8000` |
+| **production** | `lib/main_production.dart` | `https://p02--shatbha--9lqgqlp9drrc.code.run` |
+
+Config lives in `lib/core/config/app_flavor.dart`. Optional override: `--dart-define=API_BASE_URL=...` (full restart required).
+
+**Android** installs side-by-side flavors:
+
+| Flavor | Application ID | Label |
+|---|---|---|
+| local | `com.shatbha.shatbha.local` | شطبها · Local |
+| production | `com.shatbha.shatbha` | شطبها |
+
+**Scripts**
+
+| Script | Purpose |
+|---|---|
+| `scripts/adb_reverse.sh` | Forward phone `:8000` → Mac `:8000` |
+| `scripts/run_local_android.sh` | `adb reverse` + `flutter run --flavor local` |
+
+**Release builds** (production only):
+
+```bash
+fvm flutter build apk --release --flavor production -t lib/main_production.dart
+fvm flutter build appbundle --release --flavor production -t lib/main_production.dart
+```
+
+Analyze: `fvm flutter analyze lib`.
 
 ---
 
@@ -601,21 +748,19 @@ Then `--dart-define=API_BASE_URL=http://127.0.0.1:8080`.
 
 ## Build and ship the Flutter app
 
+Use the **production** flavor for store builds:
+
 ```bash
-fvm flutter build apk --release \
-  --dart-define=API_BASE_URL=https://p02--shatbha--9lqgqlp9drrc.code.run
+fvm flutter build apk --release --flavor production -t lib/main_production.dart
 
-fvm flutter build ios --release \
-  --dart-define=API_BASE_URL=https://p02--shatbha--9lqgqlp9drrc.code.run
+fvm flutter build ios --release -t lib/main_production.dart
 
-fvm flutter build macos --release \
-  --dart-define=API_BASE_URL=https://p02--shatbha--9lqgqlp9drrc.code.run
+fvm flutter build macos --release -t lib/main_production.dart
 
-fvm flutter build web --release \
-  --dart-define=API_BASE_URL=https://p02--shatbha--9lqgqlp9drrc.code.run
+fvm flutter build web --release -t lib/main_production.dart
 ```
 
-Omit `--dart-define` to keep the default in `env.dart`. Do not bake a localhost URL into a store build.
+Do not ship the **local** flavor (`com.shatbha.shatbha.local` on Android).
 
 iOS/macOS: `flutter_secure_storage` does not yet support Swift Package Manager; that is a plugin warning, not an app bug.
 
@@ -625,9 +770,13 @@ iOS/macOS: `flutter_secure_storage` does not yet support Swift Package Manager; 
 
 ```
 lib/
-  main.dart
+  main.dart                    default → production
+  main_local.dart              local flavor entry
+  main_production.dart         production flavor entry
+  bootstrap.dart               shared startup
   app.dart                     AuthBloc + DateRangeCubit + SyncCubit
   core/
+    config/app_flavor.dart     local vs production API URLs
     config/env.dart
     database/app_database.dart
     di/injection.dart          storage, Dio, DB, then registerAuth, …

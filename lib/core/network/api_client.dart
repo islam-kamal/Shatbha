@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../config/app_flavor.dart';
 import '../config/env.dart';
 import '../error/failures.dart';
 import '../logging/app_log.dart';
@@ -85,7 +87,7 @@ Failure mapDio(DioException error) {
   if (error.type == DioExceptionType.connectionError ||
       error.type == DioExceptionType.connectionTimeout ||
       error.type == DioExceptionType.unknown) {
-    return const OfflineFailure();
+    return OfflineFailure(_offlineMessage(error));
   }
   final status = error.response?.statusCode;
   if (status == 401) return const UnauthorizedFailure();
@@ -107,6 +109,19 @@ Failure mapDio(DioException error) {
       ? (error.response!.data['message'] as String? ?? 'تعذر إكمال الطلب')
       : 'تعذر إكمال الطلب';
   return ServerFailure(message);
+}
+
+String _offlineMessage(DioException error) {
+  if (Env.flavor != AppFlavor.local) {
+    return 'لا يوجد اتصال — العمل محفوظ محلياً';
+  }
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    return 'لا يمكن الوصول للسيرفر المحلي. '
+        'شغّل Laravel: php artisan serve --host=127.0.0.1 --port=8000 '
+        'ثم نفّذ: adb reverse tcp:8000 tcp:8000';
+  }
+  return 'لا يمكن الوصول للسيرفر المحلي. '
+      'شغّل Laravel: php artisan serve --host=127.0.0.1 --port=8000';
 }
 
 Future<T> guardDio<T>(Future<T> Function() run) async {
