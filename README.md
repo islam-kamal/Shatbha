@@ -17,24 +17,25 @@ This repository is the **Flutter app**. The Laravel API lives in a separate repo
 ## Table of contents
 
 1. [What the product does](#what-the-product-does)
-2. [Two data layers](#two-data-layers)
-3. [Demo users and seeded fixtures](#demo-users-and-seeded-fixtures)
-4. [Visual language](#visual-language)
-5. [Architecture](#architecture)
-6. [App start and authentication](#app-start-and-authentication)
-7. [Navigation map](#navigation-map)
-8. [Finishing pack — live API flows](#finishing-pack--live-api-flows)
-9. [Extra packs — in-app demo flows](#extra-packs--in-app-demo-flows)
-10. [Offline cache and outbox sync](#offline-cache-and-outbox-sync)
-11. [Roles and access](#roles-and-access)
-12. [Logging](#logging)
-13. [HTTP API](#http-api)
-14. [Quick start — run server and app](#quick-start--run-server-and-app)
-15. [Run the Laravel API (first-time setup)](#run-the-laravel-api-first-time-setup)
-16. [Run the Flutter app (flavors)](#run-the-flutter-app-flavors)
-17. [Deploy the API](#deploy-the-api)
-18. [Build and ship the Flutter app](#build-and-ship-the-flutter-app)
-19. [Project layout](#project-layout)
+2. [Project workflow (ecosystem)](#project-workflow-ecosystem)
+3. [Two data layers](#two-data-layers)
+4. [Demo users and seeded fixtures](#demo-users-and-seeded-fixtures)
+5. [Visual language](#visual-language)
+6. [Architecture](#architecture)
+7. [App start and authentication](#app-start-and-authentication)
+8. [Navigation map](#navigation-map)
+9. [Finishing pack — live API flows](#finishing-pack--live-api-flows)
+10. [Extra packs — in-app demo flows](#extra-packs--in-app-demo-flows)
+11. [Offline cache and outbox sync](#offline-cache-and-outbox-sync)
+12. [Roles and access](#roles-and-access)
+13. [Logging](#logging)
+14. [HTTP API](#http-api)
+15. [Quick start — run server and app](#quick-start--run-server-and-app)
+16. [Run the Laravel API (first-time setup)](#run-the-laravel-api-first-time-setup)
+17. [Run the Flutter app (flavors)](#run-the-flutter-app-flavors)
+18. [Deploy the API](#deploy-the-api)
+19. [Build and ship the Flutter app](#build-and-ship-the-flutter-app)
+20. [Project layout](#project-layout)
 
 ---
 
@@ -50,6 +51,23 @@ Shatbha is a field-and-office ledger for a finishing atelier:
 - Work **offline**: reads fall back to SQLite (Drift); writes queue in an outbox and flush from المزيد.
 
 The finishing pack is wired to the API. Extra activity packs (manufacturing, food, aluminum, real estate, carpets, …) are **in-app demo screens** so the product can show those businesses without extra backend tables yet.
+
+---
+
+## Project workflow (ecosystem)
+
+End-to-end flow for a finishing project — from planning through handover:
+
+![Shatbha project workflow — design, contractors, materials, project manager, procurement, warehouse, delivery, handover](assets/docs/project-workflow.png)
+
+| Phase | Modules | Examples |
+|---|---|---|
+| **Planning** | Design · Contractors · Materials | Inspiration, 3D ideas, floor plans · quotes, reviews, portfolio · products, prices, suppliers |
+| **Execution** | Project manager | Tasks (progress, workers, photos) · budget (payments, expenses, invoices) · timeline (milestones, delays, schedule) |
+| **Supply chain** | Procurement → Warehouse | Purchase orders · stock, delivery, transfer |
+| **Close-out** | Project → Delivery → Handover | Site delivery, snag list, sign-off |
+
+Flutter features map to this diagram: `design/`, `contractors_marketplace/`, `materials/`, `project_manager/`, `procurement/`, `warehouse/`, `handover/`, plus core `projects/`.
 
 ---
 
