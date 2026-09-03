@@ -14,4 +14,8 @@ class QuoteRepository {
       _api.respond(id, body);
 
   Future<QuoteRequest> accept(int id) => _api.accept(id);
+
+  Future<QuoteRequest> reject(int id) => _api.reject(id);
+
+  Future<QuoteRequest> get(int id) => _api.get(id);
 }

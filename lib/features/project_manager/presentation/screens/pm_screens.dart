@@ -134,7 +134,12 @@ class _TasksTab extends StatelessWidget {
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, i) {
                       final task = state.tasks[i];
-                      return _TaskCard(task: task);
+                      return _TaskCard(
+                        task: task,
+                        onToggle: () => context
+                            .read<PmCubit>()
+                            .toggleTaskStatus(projectId, task),
+                      );
                     },
                   ),
                 ),
@@ -196,8 +201,9 @@ class _TasksTab extends StatelessWidget {
 }
 
 class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.task});
+  const _TaskCard({required this.task, this.onToggle});
   final ProjectTask task;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -206,14 +212,17 @@ class _TaskCard extends StatelessWidget {
     return Material(
       color: c.ivory,
       borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Icon(
-              done ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: done ? c.teal : c.brass,
-            ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(
+                done ? Icons.check_circle : Icons.radio_button_unchecked,
+                color: done ? c.teal : c.brass,
+              ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -244,6 +253,7 @@ class _TaskCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

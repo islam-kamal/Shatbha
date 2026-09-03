@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shatbha/core/core.dart';
 
+import '../../data/models/vendor_models.dart';
+import '../../data/repositories/vendor_repository.dart';
 import '../cubit/vendor_cubit.dart';
 
 class VendorsScreen extends StatelessWidget {
@@ -240,6 +242,200 @@ class _VendorProfileView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class VendorPortfolioManageScreen extends StatefulWidget {
+  const VendorPortfolioManageScreen({super.key});
+
+  @override
+  State<VendorPortfolioManageScreen> createState() =>
+      _VendorPortfolioManageScreenState();
+}
+
+class _VendorPortfolioManageScreenState extends State<VendorPortfolioManageScreen> {
+  final _repo = sl<VendorRepository>();
+  List<PortfolioItem> _items = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final rows = await _repo.portfolio();
+      if (!mounted) return;
+      setState(() {
+        _items = rows;
+        _loading = false;
+      });
+    } on Failure catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
+    }
+  }
+
+  Future<void> _addItem() async {
+    final title = TextEditingController();
+    final workType = TextEditingController();
+    final description = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إضافة عمل'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: title,
+              decoration: const InputDecoration(labelText: 'العنوان'),
+            ),
+            TextField(
+              controller: workType,
+              decoration: const InputDecoration(labelText: 'نوع العمل'),
+            ),
+            TextField(
+              controller: description,
+              decoration: const InputDecoration(labelText: 'الوصف'),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حفظ')),
+        ],
+      ),
+    );
+    if (ok != true || title.text.trim().isEmpty) return;
+    try {
+      await _repo.createPortfolioItem({
+        'title': title.text.trim(),
+        if (workType.text.trim().isNotEmpty) 'work_type': workType.text.trim(),
+        if (description.text.trim().isNotEmpty) 'description': description.text.trim(),
+      });
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _deleteItem(int id) async {
+    try {
+      await _repo.deletePortfolioItem(id);
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    return Scaffold(
+      appBar: AppBar(
+        title: const ScreenTitle('معرض الأعمال', subtitle: 'أعمال منفذة'),
+        toolbarHeight: 88,
+        actions: [
+          IconButton(onPressed: _addItem, icon: const Icon(Icons.add)),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? StatusView.error(body: _error!, onAction: _load)
+              : _items.isEmpty
+                  ? StatusView.empty(
+                      title: 'لا أعمال',
+                      body: 'أضف صور أعمالك لتظهر في ملفك للعملاء.',
+                      actionLabel: 'إضافة عمل',
+                      onAction: _addItem,
+                    )
+                  : IvorySheet(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.85,
+                        ),
+                        itemCount: _items.length,
+                        itemBuilder: (context, i) {
+                          final item = _items[i];
+                          return Dismissible(
+                            key: ValueKey(item.id),
+                            direction: DismissDirection.endToStart,
+                            onDismissed: (_) => _deleteItem(item.id),
+                            background: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 16),
+                              color: c.terracotta,
+                              child: const Icon(Icons.delete_outline, color: Colors.white),
+                            ),
+                            child: Card(
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: item.mediaUrl != null
+                                        ? Image.network(
+                                            item.mediaUrl!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                ColoredBox(color: c.stone.withValues(alpha: 0.2)),
+                                          )
+                                        : ColoredBox(
+                                            color: c.stone.withValues(alpha: 0.15),
+                                            child: Icon(Icons.image_outlined, color: c.stone),
+                                          ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.ibmPlexSansArabic(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        if (item.workType != null)
+                                          Text(
+                                            item.workType!,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: c.stone.withValues(alpha: 0.7),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
     );
   }
 }

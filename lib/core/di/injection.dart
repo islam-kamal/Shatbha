@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../features/client/injection.dart';
 import '../../features/auth/injection.dart';
 import '../../features/catalog/injection.dart';
 import '../../features/company/injection.dart';
@@ -50,5 +51,6 @@ Future<void> setupDependencies() async {
   registerProcurement(sl);
   registerWarehouse(sl);
   registerHandover(sl);
+  registerClient(sl);
   AppLog.i('DI registered core + features');
 }

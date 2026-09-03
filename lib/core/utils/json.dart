@@ -1,6 +1,17 @@
 /// JSON helpers shared by feature models and remote datasources.
 library;
 
+int jsonInt(dynamic value, [int fallback = 0]) {
+  return jsonIntOrNull(value) ?? fallback;
+}
+
+int? jsonIntOrNull(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse('$value');
+}
+
 String jsonMoney(dynamic value) {
   if (value == null) return '0.00';
   if (value is num) return value.toStringAsFixed(2);

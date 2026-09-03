@@ -27,7 +27,7 @@ if [[ "$device_count" -eq 0 ]]; then
   exit 0
 fi
 if [[ "$device_count" -gt 1 ]]; then
-  ADB=( "$ADB_BIN" -d" )
+  ADB=( "$ADB_BIN" -d )
   echo "Multiple devices — using USB phone (-d)."
 fi
 

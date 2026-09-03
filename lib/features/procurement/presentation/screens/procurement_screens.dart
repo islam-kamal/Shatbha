@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shatbha/core/core.dart';
+import 'package:shatbha/features/procurement/data/models/procurement_models.dart';
 import 'package:shatbha/features/procurement/data/repositories/procurement_repository.dart';
 
+import '../../../vendors/data/models/vendor_models.dart';
+import '../../../vendors/data/repositories/vendor_repository.dart';
 import '../cubit/procurement_cubit.dart';
 
 class ProcurementListScreen extends StatelessWidget {
@@ -92,9 +95,7 @@ class _ProcurementListView extends StatelessWidget {
                                 badge: _statusLabel(po.status),
                               ),
                           ],
-                          onTap: (row) => context.push(
-                            '/procurement/${row.id}/receive',
-                          ),
+                          onTap: (row) => context.push('/procurement/${row.id}'),
                         ),
                       ),
               ),
@@ -145,16 +146,38 @@ class CreatePurchaseOrderScreen extends StatefulWidget {
 }
 
 class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
-  final _vendorId = TextEditingController();
   final _notes = TextEditingController();
   final _lines = <Map<String, String>>[
     {'description': '', 'quantity': '1', 'unit_price': '0'},
   ];
+  List<Vendor> _suppliers = [];
+  Vendor? _selectedVendor;
+  bool _loadingVendors = true;
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadSuppliers();
+  }
+
+  Future<void> _loadSuppliers() async {
+    try {
+      final rows = await sl<VendorRepository>().list(type: 'supplier');
+      if (!mounted) return;
+      setState(() {
+        _suppliers = rows;
+        _selectedVendor = rows.isNotEmpty ? rows.first : null;
+        _loadingVendors = false;
+      });
+    } on Failure {
+      if (!mounted) return;
+      setState(() => _loadingVendors = false);
+    }
+  }
+
+  @override
   void dispose() {
-    _vendorId.dispose();
     _notes.dispose();
     super.dispose();
   }
@@ -164,8 +187,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     try {
       await sl<ProcurementRepository>().create({
         if (widget.projectId != null) 'project_id': widget.projectId,
-        if (_vendorId.text.trim().isNotEmpty)
-          'vendor_id': int.parse(_vendorId.text.trim()),
+        if (_selectedVendor != null) 'vendor_id': _selectedVendor!.id,
         if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
         'lines': [
           for (final line in _lines)
@@ -203,12 +225,24 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         children: [
           if (widget.projectId != null)
             FieldLabel('مشروع #${widget.projectId}'),
-          const FieldLabel('رقم المورد'),
-          TextField(
-            controller: _vendorId,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(hintText: 'معرف المورد'),
-          ),
+          const FieldLabel('المورد'),
+          if (_loadingVendors)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(),
+            )
+          else if (_suppliers.isEmpty)
+            const Text('لا يوجد موردون مسجلون')
+          else
+            DropdownButtonFormField<Vendor>(
+              initialValue: _selectedVendor,
+              decoration: const InputDecoration(hintText: 'اختر المورد'),
+              items: [
+                for (final v in _suppliers)
+                  DropdownMenuItem(value: v, child: Text(v.name)),
+              ],
+              onChanged: (v) => setState(() => _selectedVendor = v),
+            ),
           const SizedBox(height: 16),
           const FieldLabel('البنود'),
           for (var i = 0; i < _lines.length; i++) ...[
@@ -250,6 +284,148 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             label: _saving ? 'جاري الحفظ…' : 'حفظ أمر الشراء',
             onPressed: _saving ? null : _save,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class PurchaseOrderDetailScreen extends StatefulWidget {
+  const PurchaseOrderDetailScreen({super.key, required this.poId});
+  final int poId;
+
+  @override
+  State<PurchaseOrderDetailScreen> createState() =>
+      _PurchaseOrderDetailScreenState();
+}
+
+class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
+  PurchaseOrder? _po;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final po = await sl<ProcurementRepository>().get(widget.poId);
+      if (!mounted) return;
+      setState(() {
+        _po = po;
+        _loading = false;
+      });
+    } on Failure catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: const ScreenTitle('أمر الشراء')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null || _po == null) {
+      return Scaffold(
+        appBar: AppBar(title: const ScreenTitle('أمر الشراء')),
+        body: StatusView.error(body: _error ?? 'تعذر التحميل', onAction: _load),
+      );
+    }
+    final po = _po!;
+    return Scaffold(
+      appBar: AppBar(
+        title: ScreenTitle(
+          po.poNumber ?? 'PO #${po.id}',
+          subtitle: po.vendorName ?? '',
+        ),
+        toolbarHeight: 88,
+        actions: [
+          if (po.status != 'received')
+            IconButton(
+              icon: const Icon(Icons.inventory_2_outlined),
+              onPressed: () => context.push('/procurement/${po.id}/receive'),
+            ),
+        ],
+      ),
+      body: IvorySheet(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            KpiStrip(
+              items: [
+                KpiItem(
+                  'الإجمالي',
+                  po.total,
+                  tint: c.calculatedTint,
+                  icon: Icons.payments_outlined,
+                ),
+                KpiItem(
+                  'الحالة',
+                  _statusLabel(po.status),
+                  tint: c.dateTint,
+                  icon: Icons.info_outline,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (po.projectName != null)
+              _PoDetailRow(label: 'المشروع', value: po.projectName!),
+            const SectionLabel('البنود'),
+            for (final line in po.lines)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: LedgerCard(
+                  row: LedgerRow(
+                    id: line.id,
+                    title: line.description ?? 'بند',
+                    subtitle: '${line.quantity} × ${line.unitPrice}',
+                    amount: line.unitPrice,
+                    accent: c.brass,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _statusLabel(String status) => switch (status) {
+        'received' => 'مستلم',
+        'ordered' => 'مُرسَل',
+        'draft' => 'مسودة',
+        _ => status,
+      };
+}
+
+class _PoDetailRow extends StatelessWidget {
+  const _PoDetailRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(label, style: TextStyle(color: c.stone.withValues(alpha: 0.6))),
+          ),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
         ],
       ),
     );

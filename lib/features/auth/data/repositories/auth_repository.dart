@@ -14,6 +14,7 @@ class AuthRepository {
   static const _authKindKey = 'auth_kind';
   static const _companyKind = 'company';
   static const _vendorKind = 'vendor';
+  static const _clientKind = 'client';
 
   final AuthRemoteDatasource _api;
   final AppDatabase _db;
@@ -29,6 +30,17 @@ class AuthRepository {
     if (kind == _vendorKind) {
       AppLog.d('stored vendor token, restoring from cache', tag: 'auth');
       return cachedUser();
+    }
+    if (kind == _clientKind) {
+      AppLog.d('stored client token, calling /client/me', tag: 'auth');
+      try {
+        final user = await _api.clientMe();
+        await cacheUser(user);
+        return user;
+      } on Failure catch (e) {
+        AppLog.e('restore /client/me failed, using cache', tag: 'auth', error: e);
+        return cachedUser();
+      }
     }
     AppLog.d('stored token present, calling /me', tag: 'auth');
     try {
@@ -47,7 +59,12 @@ class AuthRepository {
       return await _loginCompany(email, password);
     } on ValidationFailure {
       AppLog.d('company login failed, trying /vendor/login', tag: 'auth');
-      return _loginVendor(email, password);
+      try {
+        return await _loginVendor(email, password);
+      } on ValidationFailure {
+        AppLog.d('vendor login failed, trying /client/login', tag: 'auth');
+        return _loginClient(email, password);
+      }
     }
   }
 
@@ -68,6 +85,18 @@ class AuthRepository {
     await _persistSession(token: token, kind: _vendorKind, user: user);
     return user;
   }
+
+  Future<AuthUser> _loginClient(String email, String password) async {
+    AppLog.d('POST /client/login $email', tag: 'auth');
+    final payload = await _api.clientLogin(email, password);
+    final token = payload['token'] as String;
+    final user =
+        AuthUser.fromClientJson(payload['client'] as Map<String, dynamic>);
+    await _persistSession(token: token, kind: _clientKind, user: user);
+    return user;
+  }
+
+  Future<List<Map<String, dynamic>>> clientProjects() => _api.clientProjects();
 
   Future<void> _persistSession({
     required String token,

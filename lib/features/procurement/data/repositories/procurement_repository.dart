@@ -11,6 +11,8 @@ class ProcurementRepository {
   Future<PurchaseOrder> create(Map<String, dynamic> body) =>
       _api.createPurchaseOrder(body);
 
+  Future<PurchaseOrder> get(int id) => _api.getPurchaseOrder(id);
+
   Future<GoodsReceipt> receive(int poId, Map<String, dynamic> body) =>
       _api.receiveGoods(poId, body);
 }

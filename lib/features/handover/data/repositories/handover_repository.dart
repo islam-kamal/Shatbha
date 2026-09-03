@@ -13,6 +13,9 @@ class HandoverRepository {
   Future<SnagItem> createSnag(int projectId, Map<String, dynamic> body) =>
       _api.createSnagItem(projectId, body);
 
+  Future<SnagItem> resolveSnag(int projectId, int snagId) =>
+      _api.resolveSnag(projectId, snagId);
+
   Future<List<HandoverChecklistItem>> checklist(int projectId) =>
       _api.checklist(projectId);
 

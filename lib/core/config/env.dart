@@ -38,6 +38,8 @@ class Env {
     }
     final uri = Uri.tryParse(value);
     if (uri == null || !uri.hasScheme || uri.host.isEmpty) return false;
+    // README Wi‑Fi example — not a real machine on most networks.
+    if (uri.host == '192.168.91.70') return false;
     return uri.scheme == 'http' || uri.scheme == 'https';
   }
 }

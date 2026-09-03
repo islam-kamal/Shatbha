@@ -36,6 +36,16 @@ class HandoverRemoteDatasource {
     });
   }
 
+  Future<SnagItem> resolveSnag(int projectId, int snagId) {
+    return guardDio(() async {
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/projects/$projectId/handover/snags/$snagId',
+        data: {'status': 'fixed'},
+      );
+      return SnagItem.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
   Future<List<HandoverChecklistItem>> checklist(int projectId) {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>(

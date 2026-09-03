@@ -14,4 +14,7 @@ class ProjectRepository {
 
   Future<Project> update(int id, Map<String, dynamic> body) =>
       _api.update(id, Project.toApiBody(body));
+
+  Future<Map<String, dynamic>> financialSummary(int id) =>
+      _api.financialSummary(id);
 }

@@ -30,6 +30,13 @@ class ProcurementRemoteDatasource {
     });
   }
 
+  Future<PurchaseOrder> getPurchaseOrder(int id) {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/purchase-orders/$id');
+      return PurchaseOrder.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
   Future<GoodsReceipt> receiveGoods(int poId, Map<String, dynamic> body) {
     return guardDio(() async {
       final res = await _dio.post<Map<String, dynamic>>(

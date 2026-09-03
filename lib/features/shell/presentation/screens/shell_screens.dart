@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:shatbha/core/core.dart';
+import 'package:shatbha/features/auth/data/repositories/auth_repository.dart';
 import 'package:shatbha/features/auth/presentation/cubit/auth_bloc.dart';
 import 'package:shatbha/features/auth/data/models/auth_models.dart';
 import 'package:shatbha/features/sync/presentation/cubit/sync_cubit.dart';
@@ -17,16 +18,20 @@ class ShellScaffold extends StatelessWidget {
     final auth = context.watch<AuthBloc>().state;
     final vendorMode =
         auth is AuthAuthenticated && auth.user.isVendor;
+    final clientMode =
+        auth is AuthAuthenticated && auth.user.isClient;
+    final limitedNav = vendorMode || clientMode;
     final shellIndex = navigationShell.currentIndex;
-    final navIndex = vendorMode ? (shellIndex >= 3 ? 1 : 0) : shellIndex;
+    final navIndex = limitedNav ? (shellIndex >= 3 ? 1 : 0) : shellIndex;
 
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: AppBottomNav(
         vendorMode: vendorMode,
+        clientMode: clientMode,
         index: navIndex,
         onTap: (i) {
-          if (vendorMode) {
+          if (limitedNav) {
             navigationShell.goBranch(i == 0 ? 0 : 3);
           } else {
             navigationShell.goBranch(i);
@@ -43,6 +48,9 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthBloc>().state;
+    if (auth is AuthAuthenticated && auth.user.isClient) {
+      return const ClientHomeScreen();
+    }
     final user = auth is AuthAuthenticated ? auth.user : null;
     final isVendor = user?.isVendor ?? false;
     final slogan = isVendor
@@ -129,7 +137,7 @@ class HomeScreen extends StatelessWidget {
         HomeNavTile(
           title: 'منتجاتي',
           icon: Icons.inventory_2_outlined,
-          onTap: () => context.push('/materials/supplier/${user.id}'),
+          onTap: () => context.push('/vendor/products'),
         ),
         HomeNavTile(
           title: 'ملفي',
@@ -145,11 +153,311 @@ class HomeScreen extends StatelessWidget {
         onTap: () => context.push('/quotes'),
       ),
       HomeNavTile(
+        title: 'معرض الأعمال',
+        icon: Icons.photo_library_outlined,
+        onTap: () => context.push('/vendor/portfolio'),
+      ),
+      HomeNavTile(
         title: 'ملفي',
         icon: Icons.engineering_outlined,
         onTap: () => context.push('/vendors/${user.id}'),
       ),
     ];
+  }
+}
+
+class ClientHomeScreen extends StatefulWidget {
+  const ClientHomeScreen({super.key});
+
+  @override
+  State<ClientHomeScreen> createState() => _ClientHomeScreenState();
+}
+
+class _ClientHomeScreenState extends State<ClientHomeScreen> {
+  List<Map<String, dynamic>> _projects = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final rows = await sl<AuthRepository>().clientProjects();
+      if (!mounted) return;
+      setState(() {
+        _projects = rows;
+        _loading = false;
+      });
+    } on Failure catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        body: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: BrandLockup(slogan: 'حساب عميل — متابعة مشاريعك'),
+              ),
+            ),
+            const TabBar(
+              tabs: [
+                Tab(text: 'مشروعي'),
+                Tab(text: 'التحديثات'),
+                Tab(text: 'المستندات'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _ClientProjectsTab(
+                    projects: _projects,
+                    loading: _loading,
+                    error: _error,
+                    onReload: _load,
+                  ),
+                  _ClientUpdatesTab(
+                    projects: _projects,
+                    loading: _loading,
+                    error: _error,
+                    onReload: _load,
+                  ),
+                  _ClientDocumentsTab(
+                    projects: _projects,
+                    loading: _loading,
+                    error: _error,
+                    onReload: _load,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+int _clientProgressPercent(Map<String, dynamic> p, String status) {
+  final explicit = p['progress_percent'];
+  if (explicit is num) return explicit.round().clamp(0, 100);
+  return switch (status) {
+    'handed_over' || 'completed' => 100,
+    'delivered' => 90,
+    'in_progress' || 'active' => 50,
+    'planning' => 20,
+    _ => 10,
+  };
+}
+
+String _clientStatusLabel(String status) {
+  switch (status) {
+    case 'in_progress':
+    case 'active':
+      return 'قيد التنفيذ';
+    case 'planning':
+      return 'تخطيط';
+    case 'delivered':
+      return 'تسليم';
+    case 'handed_over':
+    case 'completed':
+      return 'مكتمل';
+    default:
+      return status;
+  }
+}
+
+class _ClientProjectsTab extends StatelessWidget {
+  const _ClientProjectsTab({
+    required this.projects,
+    required this.loading,
+    required this.error,
+    required this.onReload,
+  });
+
+  final List<Map<String, dynamic>> projects;
+  final bool loading;
+  final String? error;
+  final VoidCallback onReload;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (error != null) {
+      return StatusView.error(body: error!, onAction: onReload);
+    }
+    if (projects.isEmpty) {
+      return const StatusView.empty(
+        title: 'لا مشاريع',
+        body: 'ستظهر مشاريع التشطيب المرتبطة بحسابك هنا.',
+      );
+    }
+    return IvorySheet(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+        itemCount: projects.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) {
+          final p = projects[i];
+          final name = (p['title'] ?? p['name']) as String? ?? 'مشروع';
+          final status = p['status'] as String? ?? 'draft';
+          final progress = _clientProgressPercent(p, status);
+          return LedgerCard(
+            row: LedgerRow(
+              id: p['id'] as int,
+              title: name,
+              subtitle: '${_clientStatusLabel(status)} · ${p['address'] ?? ''}',
+              amount: p['budget']?.toString() ?? '—',
+              accent: c.teal,
+              badge: '$progress%',
+            ),
+            onTap: () => context.push('/client/projects/${p['id']}'),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ClientUpdatesTab extends StatelessWidget {
+  const _ClientUpdatesTab({
+    required this.projects,
+    required this.loading,
+    required this.error,
+    required this.onReload,
+  });
+
+  final List<Map<String, dynamic>> projects;
+  final bool loading;
+  final String? error;
+  final VoidCallback onReload;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (error != null) {
+      return StatusView.error(body: error!, onAction: onReload);
+    }
+    if (projects.isEmpty) {
+      return const StatusView.empty(
+        title: 'لا تحديثات',
+        body: 'ستظهر آخر التحديثات والمعالم هنا.',
+      );
+    }
+    return IvorySheet(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+        itemCount: projects.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) {
+          final p = projects[i];
+          final name = (p['title'] ?? p['name']) as String? ?? 'مشروع';
+          final status = p['status'] as String? ?? 'draft';
+          final progress = _clientProgressPercent(p, status);
+          final designStatus = p['design_status'] as String? ?? 'pending';
+          return LedgerCard(
+            row: LedgerRow(
+              id: p['id'] as int,
+              title: name,
+              subtitle: 'التقدم $progress% · ${_designStatusLabel(designStatus)}',
+              amount: _clientStatusLabel(status),
+              accent: c.dateTint,
+              badge: 'تحديث',
+            ),
+            onTap: () => context.push('/client/projects/${p['id']}'),
+          );
+        },
+      ),
+    );
+  }
+
+  String _designStatusLabel(String status) {
+    switch (status) {
+      case 'approved':
+        return 'تصميم معتمد';
+      case 'rejected':
+        return 'تصميم مرفوض';
+      case 'pending':
+        return 'بانتظار اعتماد التصميم';
+      case 'draft':
+        return 'التصميم قيد الإعداد';
+      default:
+        return 'التصميم قيد الإعداد';
+    }
+  }
+}
+
+class _ClientDocumentsTab extends StatelessWidget {
+  const _ClientDocumentsTab({
+    required this.projects,
+    required this.loading,
+    required this.error,
+    required this.onReload,
+  });
+
+  final List<Map<String, dynamic>> projects;
+  final bool loading;
+  final String? error;
+  final VoidCallback onReload;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (error != null) {
+      return StatusView.error(body: error!, onAction: onReload);
+    }
+    if (projects.isEmpty) {
+      return const StatusView.empty(
+        title: 'لا مستندات',
+        body: 'ستظهر مستندات التصميم والتسليم هنا.',
+      );
+    }
+    return IvorySheet(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+        children: [
+          for (final p in projects) ...[
+            SectionLabel((p['title'] ?? p['name'] ?? 'مشروع').toString()),
+            IvoryMenuCard(
+              children: [
+                HubRow(
+                  title: 'اعتماد التصميم',
+                  subtitle: 'مراجعة واعتماد التصميم',
+                  icon: Icons.palette_outlined,
+                  onTap: () => context.push(
+                    '/client/projects/${p['id']}/design-approval',
+                  ),
+                ),
+                HubRow(
+                  title: 'مستندات التسليم',
+                  subtitle: 'قائمة فحص · عيوب · توقيع',
+                  icon: Icons.description_outlined,
+                  onTap: () => context.push('/projects/${p['id']}/handover'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ],
+      ),
+    );
   }
 }
 

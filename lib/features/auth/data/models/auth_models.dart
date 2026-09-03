@@ -51,6 +51,8 @@ class AuthUser {
 
   bool get isVendor => role == 'contractor' || role == 'supplier';
 
+  bool get isClient => role == 'client';
+
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
         id: json['id'] as int,
         name: json['name'] as String,
@@ -67,6 +69,20 @@ class AuthUser {
         email: json['email'] as String,
         role: json['type'] as String,
       );
+
+  factory AuthUser.fromClientJson(Map<String, dynamic> json) {
+    final party = json['party'];
+    final partyMap = party is Map<String, dynamic> ? party : null;
+    return AuthUser(
+      id: json['id'] as int,
+      name: partyMap?['name'] as String? ??
+          json['name'] as String? ??
+          json['email'] as String? ??
+          '',
+      email: json['email'] as String? ?? '',
+      role: 'client',
+    );
+  }
 
   AuthUser copyWith({CompanyInfo? company}) {
     return AuthUser(

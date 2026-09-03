@@ -57,6 +57,20 @@ class PmCubit extends Cubit<PmState> {
     }
   }
 
+  Future<void> toggleTaskStatus(int projectId, ProjectTask task) async {
+    final next = task.status == 'done' ? 'pending' : 'done';
+    try {
+      final updated = await _repo.updateTask(projectId, task.id, {
+        'status': next,
+      });
+      emit(state.copyWith(
+        tasks: state.tasks.map((t) => t.id == task.id ? updated : t).toList(),
+      ));
+    } on Failure catch (e) {
+      emit(state.copyWith(error: e.message));
+    }
+  }
+
   Future<void> addBudgetLine(int projectId, Map<String, dynamic> body) async {
     try {
       final line = await _repo.createBudgetLine(projectId, body);

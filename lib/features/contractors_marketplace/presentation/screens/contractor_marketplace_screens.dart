@@ -277,12 +277,16 @@ class _QuotesListView extends StatelessWidget {
                             ? c.brass
                             : c.dateTint,
                     badge: !isVendor && q.isResponded && !q.isAccepted
-                        ? 'قبول'
+                        ? 'مراجعة'
                         : null,
                   ),
-                  onTap: !isVendor && q.isResponded && !q.isAccepted
-                      ? () => _accept(context, q.id)
-                      : null,
+                  onTap: () {
+                    if (isVendor && q.isPending) {
+                      context.push('/quotes/${q.id}/respond');
+                    } else if (!isVendor) {
+                      context.push('/quotes/${q.id}');
+                    }
+                  },
                 );
               },
             ),
@@ -291,14 +295,228 @@ class _QuotesListView extends StatelessWidget {
       ),
     );
   }
+}
 
-  Future<void> _accept(BuildContext context, int id) async {
-    final ok = await context.read<QuoteCubit>().acceptQuote(id);
-    if (context.mounted && ok) {
+class QuoteDetailScreen extends StatelessWidget {
+  const QuoteDetailScreen({super.key, required this.quoteId});
+  final int quoteId;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => QuoteCubit(sl(), sl())..loadQuote(quoteId),
+      child: _QuoteDetailView(quoteId: quoteId),
+    );
+  }
+}
+
+class _QuoteDetailView extends StatelessWidget {
+  const _QuoteDetailView({required this.quoteId});
+  final int quoteId;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<QuoteCubit, QuoteState>(
+      builder: (context, state) {
+        if (state.loading && state.selectedQuote == null) {
+          return Scaffold(
+            appBar: AppBar(title: const ScreenTitle('تفاصيل العرض')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        final q = state.selectedQuote;
+        if (q == null) {
+          return Scaffold(
+            appBar: AppBar(title: const ScreenTitle('تفاصيل العرض')),
+            body: StatusView.error(body: state.error ?? 'تعذر تحميل العرض'),
+          );
+        }
+        return Scaffold(
+          appBar: AppBar(
+            title: ScreenTitle(
+              q.contractorName ?? 'عرض #${q.id}',
+              subtitle: _statusLabel(q.status),
+            ),
+            toolbarHeight: 88,
+          ),
+          body: IvorySheet(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                if (q.projectName != null)
+                  _QuoteDetailRow(label: 'المشروع', value: q.projectName!),
+                if (q.description != null)
+                  _QuoteDetailRow(label: 'الوصف', value: q.description!),
+                if (q.amount != null)
+                  _QuoteDetailRow(label: 'المبلغ', value: q.amount!),
+                if (q.notes != null)
+                  _QuoteDetailRow(label: 'ملاحظات', value: q.notes!),
+                if (q.responseNotes != null)
+                  _QuoteDetailRow(label: 'رد المقاول', value: q.responseNotes!),
+                const SizedBox(height: 24),
+                if (q.isResponded && !q.isAccepted) ...[
+                  AtelierButton(
+                    label: 'قبول العرض',
+                    icon: Icons.check,
+                    kind: AtelierButtonKind.teal,
+                    onPressed: state.loading
+                        ? null
+                        : () async {
+                            final ok = await context
+                                .read<QuoteCubit>()
+                                .acceptQuote(quoteId);
+                            if (!context.mounted) return;
+                            if (ok) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('تم قبول العرض')),
+                              );
+                              context.pop(true);
+                            }
+                          },
+                  ),
+                  const SizedBox(height: 12),
+                  AtelierButton(
+                    label: 'رفض العرض',
+                    kind: AtelierButtonKind.danger,
+                    icon: Icons.close,
+                    onPressed: state.loading
+                        ? null
+                        : () async {
+                            final ok = await context
+                                .read<QuoteCubit>()
+                                .rejectQuote(quoteId);
+                            if (!context.mounted) return;
+                            if (ok) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('تم رفض العرض')),
+                              );
+                              context.pop(true);
+                            }
+                          },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class QuoteRespondScreen extends StatefulWidget {
+  const QuoteRespondScreen({super.key, required this.quoteId});
+  final int quoteId;
+
+  @override
+  State<QuoteRespondScreen> createState() => _QuoteRespondScreenState();
+}
+
+class _QuoteRespondScreenState extends State<QuoteRespondScreen> {
+  final _amount = TextEditingController();
+  final _notes = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_amount.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      await sl<QuoteRepository>().respond(widget.quoteId, {
+        'amount': _amount.text.trim(),
+        if (_notes.text.trim().isNotEmpty) 'response_notes': _notes.text.trim(),
+        'lines': [
+          {
+            'qty': '1',
+            'unit_price': _amount.text.trim(),
+            'description': 'عرض سعر',
+          },
+        ],
+      });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم قبول العرض')),
+        const SnackBar(content: Text('تم إرسال الرد')),
       );
+      context.pop(true);
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const ScreenTitle('الرد على طلب العرض'),
+        toolbarHeight: 76,
+      ),
+      body: IvorySheet(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            TextField(
+              controller: _amount,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'قيمة العرض *'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _notes,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'ملاحظات'),
+            ),
+            const SizedBox(height: 24),
+            AtelierButton(
+              label: _saving ? 'جاري الإرسال...' : 'إرسال الرد',
+              icon: Icons.send_outlined,
+              onPressed: _saving ? null : _submit,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuoteDetailRow extends StatelessWidget {
+  const _QuoteDetailRow({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: TextStyle(color: c.stone.withValues(alpha: 0.6)),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

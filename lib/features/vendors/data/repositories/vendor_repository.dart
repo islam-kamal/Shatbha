@@ -14,4 +14,11 @@ class VendorRepository {
 
   Future<Review> createReview(Map<String, dynamic> body) =>
       _api.createReview(body);
+
+  Future<List<PortfolioItem>> portfolio() => _api.portfolio();
+
+  Future<PortfolioItem> createPortfolioItem(Map<String, dynamic> body) =>
+      _api.createPortfolioItem(body);
+
+  Future<void> deletePortfolioItem(int id) => _api.deletePortfolioItem(id);
 }

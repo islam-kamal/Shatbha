@@ -35,6 +35,46 @@ class MaterialRemoteDatasource {
     });
   }
 
+  Future<List<Product>> vendorProducts() {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/vendor/products');
+      return jsonList(res.data, Product.fromJson);
+    });
+  }
+
+  Future<Product> createVendorProduct(Map<String, dynamic> body) {
+    return guardDio(() async {
+      final res =
+          await _dio.post<Map<String, dynamic>>('/vendor/products', data: body);
+      return Product.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<Product> updateVendorProduct(int id, Map<String, dynamic> body) {
+    return guardDio(() async {
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/vendor/products/$id',
+        data: body,
+      );
+      return Product.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<void> deleteVendorProduct(int id) {
+    return guardDio(() async {
+      await _dio.delete<void>('/vendor/products/$id');
+    });
+  }
+
+  Future<Map<String, dynamic>> generatePo(int projectId) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/projects/$projectId/materials/generate-po',
+      );
+      return res.data!['data'] as Map<String, dynamic>;
+    });
+  }
+
   Future<List<ProjectMaterial>> projectMaterials(int projectId) {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>(

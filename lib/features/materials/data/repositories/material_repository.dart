@@ -13,6 +13,19 @@ class MaterialRepository {
   Future<Product> createProduct(Map<String, dynamic> body) =>
       _api.createProduct(body);
 
+  Future<List<Product>> vendorProducts() => _api.vendorProducts();
+
+  Future<Product> createVendorProduct(Map<String, dynamic> body) =>
+      _api.createVendorProduct(body);
+
+  Future<Product> updateVendorProduct(int id, Map<String, dynamic> body) =>
+      _api.updateVendorProduct(id, body);
+
+  Future<void> deleteVendorProduct(int id) => _api.deleteVendorProduct(id);
+
+  Future<Map<String, dynamic>> generatePo(int projectId) =>
+      _api.generatePo(projectId);
+
   Future<List<ProjectMaterial>> projectMaterials(int projectId) =>
       _api.projectMaterials(projectId);
 

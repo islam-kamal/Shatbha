@@ -5,6 +5,7 @@ import 'package:shatbha/core/core.dart';
 
 import '../../../projects/data/models/project_models.dart';
 import '../../../projects/data/repositories/project_repository.dart';
+import '../../data/models/material_models.dart';
 import '../../data/repositories/material_repository.dart';
 import '../cubit/material_cubit.dart';
 
@@ -157,6 +158,173 @@ class SupplierProductsScreen extends StatelessWidget {
   }
 }
 
+class SupplierProductsManageScreen extends StatefulWidget {
+  const SupplierProductsManageScreen({super.key});
+
+  @override
+  State<SupplierProductsManageScreen> createState() =>
+      _SupplierProductsManageScreenState();
+}
+
+class _SupplierProductsManageScreenState
+    extends State<SupplierProductsManageScreen> {
+  List<Product> _products = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final rows = await sl<MaterialRepository>().vendorProducts();
+      if (!mounted) return;
+      setState(() {
+        _products = rows;
+        _loading = false;
+      });
+    } on Failure catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
+    }
+  }
+
+  Future<void> _showForm({Product? product}) async {
+    final name = TextEditingController(text: product?.name ?? '');
+    final price = TextEditingController(text: product?.price ?? '');
+    final unit = TextEditingController(text: product?.unit ?? '');
+    final category = TextEditingController(text: product?.category ?? '');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(product == null ? 'منتج جديد' : 'تعديل منتج'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'الاسم *'),
+            ),
+            TextField(
+              controller: price,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'السعر'),
+            ),
+            TextField(
+              controller: unit,
+              decoration: const InputDecoration(labelText: 'الوحدة'),
+            ),
+            TextField(
+              controller: category,
+              decoration: const InputDecoration(labelText: 'التصنيف'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حفظ')),
+        ],
+      ),
+    );
+    if (ok != true || name.text.trim().isEmpty || !mounted) return;
+    final body = {
+      'name': name.text.trim(),
+      if (price.text.trim().isNotEmpty) 'price': price.text.trim(),
+      if (unit.text.trim().isNotEmpty) 'unit': unit.text.trim(),
+      if (category.text.trim().isNotEmpty) 'category': category.text.trim(),
+    };
+    try {
+      if (product == null) {
+        await sl<MaterialRepository>().createVendorProduct(body);
+      } else {
+        await sl<MaterialRepository>().updateVendorProduct(product.id, body);
+      }
+      if (!mounted) return;
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _delete(Product product) async {
+    try {
+      await sl<MaterialRepository>().deleteVendorProduct(product.id);
+      if (!mounted) return;
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    return Scaffold(
+      appBar: AppBar(
+        title: const ScreenTitle('إدارة منتجاتي'),
+        toolbarHeight: 76,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showForm(),
+        child: const Icon(Icons.add),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? StatusView.error(body: _error!, onAction: _load)
+              : _products.isEmpty
+                  ? StatusView.empty(
+                      title: 'لا منتجات',
+                      body: 'أضف أول منتج ليظهر في الكتalog.',
+                      actionLabel: 'منتج جديد',
+                      onAction: () => _showForm(),
+                    )
+                  : IvorySheet(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+                        itemCount: _products.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, i) {
+                          final p = _products[i];
+                          return Dismissible(
+                            key: ValueKey(p.id),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 20),
+                              color: c.terracotta,
+                              child: const Icon(Icons.delete_outline,
+                                  color: Colors.white),
+                            ),
+                            onDismissed: (_) => _delete(p),
+                            child: LedgerCard(
+                              row: LedgerRow(
+                                id: p.id,
+                                title: p.name,
+                                subtitle: p.category ?? '',
+                                amount: p.price,
+                                accent: c.teal,
+                              ),
+                              onTap: () => _showForm(product: p),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+    );
+  }
+}
+
 class _SupplierProductsView extends StatelessWidget {
   const _SupplierProductsView({required this.supplierId});
   final int supplierId;
@@ -231,6 +399,11 @@ class _ProjectMaterialsView extends StatelessWidget {
             icon: const Icon(Icons.add),
             onPressed: () => context.push('/materials'),
           ),
+          IconButton(
+            icon: const Icon(Icons.receipt_long_outlined),
+            tooltip: 'إنشاء أمر شراء',
+            onPressed: () => _generatePo(context),
+          ),
         ],
       ),
       body: BlocBuilder<MaterialCubit, MaterialsState>(
@@ -294,6 +467,29 @@ class _ProjectMaterialsView extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _generatePo(BuildContext context) async {
+    try {
+      final result =
+          await sl<MaterialRepository>().generatePo(projectId);
+      if (!context.mounted) return;
+      final poId = result['id'] ?? result['purchase_order_id'];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            poId != null ? 'تم إنشاء أمر الشراء #$poId' : 'تم إنشاء أمر الشراء',
+          ),
+        ),
+      );
+      if (poId != null) {
+        context.push('/procurement/$poId');
+      }
+    } on Failure catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 }
 

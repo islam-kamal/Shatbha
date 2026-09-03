@@ -27,6 +27,36 @@ class AuthRemoteDatasource {
     });
   }
 
+  Future<Map<String, dynamic>> clientLogin(String email, String password) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/client/login',
+        data: {'email': email, 'password': password},
+      );
+      return res.data!;
+    });
+  }
+
+  Future<AuthUser> clientMe() {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/client/me');
+      return AuthUser.fromClientJson(
+        res.data!['client'] as Map<String, dynamic>,
+      );
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> clientProjects() {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/client/projects');
+      final data = res.data!['data'];
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      return const [];
+    });
+  }
+
   Future<AuthUser> me() {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>('/me');

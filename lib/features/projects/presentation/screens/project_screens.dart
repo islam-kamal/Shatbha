@@ -124,6 +124,8 @@ class _ProjectDetailView extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
+                _ProjectFinancialSummary(projectId: projectId),
+                const SizedBox(height: 16),
                 if (p.clientName != null)
                   _DetailRow(label: 'العميل', value: p.clientName!),
                 if (p.address != null)
@@ -230,7 +232,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         if (_area.text.trim().isNotEmpty) 'area_sqm': _area.text.trim(),
         if (_description.text.trim().isNotEmpty)
           'description': _description.text.trim(),
-        'status': 'draft',
+        'status': 'planning',
       });
       if (!mounted) return;
       context.pop(project);
@@ -299,6 +301,87 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   }
 }
 
+class _ProjectFinancialSummary extends StatefulWidget {
+  const _ProjectFinancialSummary({required this.projectId});
+  final int projectId;
+
+  @override
+  State<_ProjectFinancialSummary> createState() =>
+      _ProjectFinancialSummaryState();
+}
+
+class _ProjectFinancialSummaryState extends State<_ProjectFinancialSummary> {
+  Map<String, dynamic>? _summary;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data =
+          await sl<ProjectRepository>().financialSummary(widget.projectId);
+      if (!mounted) return;
+      setState(() {
+        _summary = data;
+        _loading = false;
+      });
+    } on Failure {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: LinearProgressIndicator(),
+      );
+    }
+    if (_summary == null) return const SizedBox.shrink();
+    final s = _summary!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionLabel('الملخص المالي'),
+        KpiStrip(
+          items: [
+            KpiItem(
+              'الميزانية',
+              _money(s['budget'] ?? s['planned_total']),
+              tint: c.dateTint,
+              icon: Icons.account_balance_outlined,
+            ),
+            KpiItem(
+              'الفعلي',
+              _money(s['actual_total'] ?? s['spent']),
+              tint: c.expenseTint,
+              icon: Icons.payments_outlined,
+            ),
+            KpiItem(
+              'المتبقي',
+              _money(s['remaining'] ?? s['balance']),
+              tint: c.calculatedTint,
+              icon: Icons.savings_outlined,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _money(dynamic value) {
+    if (value == null) return '—';
+    return value.toString();
+  }
+}
+
 class _DetailRow extends StatelessWidget {
   const _DetailRow({required this.label, required this.value});
   final String label;
@@ -333,13 +416,17 @@ class _DetailRow extends StatelessWidget {
 
 String _statusLabel(String status) {
   switch (status) {
+    case 'planning':
+    case 'draft':
+      return 'تخطيط';
     case 'active':
     case 'in_progress':
-      return 'نشط';
+      return 'قيد التنفيذ';
+    case 'delivered':
+      return 'تسليم';
+    case 'handed_over':
     case 'completed':
       return 'مكتمل';
-    case 'draft':
-      return 'مسودة';
     default:
       return status;
   }

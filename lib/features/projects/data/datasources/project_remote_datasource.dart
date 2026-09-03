@@ -36,4 +36,13 @@ class ProjectRemoteDatasource {
       return Project.fromJson(res.data!['data'] as Map<String, dynamic>);
     });
   }
+
+  Future<Map<String, dynamic>> financialSummary(int id) {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/projects/$id/reports/summary',
+      );
+      return res.data!['data'] as Map<String, dynamic>;
+    });
+  }
 }

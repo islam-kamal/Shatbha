@@ -10,6 +10,13 @@ class PmRepository {
   Future<ProjectTask> createTask(int projectId, Map<String, dynamic> body) =>
       _api.createTask(projectId, body);
 
+  Future<ProjectTask> updateTask(
+    int projectId,
+    int taskId,
+    Map<String, dynamic> body,
+  ) =>
+      _api.updateTask(projectId, taskId, body);
+
   Future<List<ProjectMilestone>> milestones(int projectId) =>
       _api.milestones(projectId);
 

@@ -390,11 +390,13 @@ class AppBottomNav extends StatelessWidget {
     required this.index,
     required this.onTap,
     this.vendorMode = false,
+    this.clientMode = false,
   });
 
   final int index;
   final ValueChanged<int> onTap;
   final bool vendorMode;
+  final bool clientMode;
 
   @override
   Widget build(BuildContext context) {
@@ -405,7 +407,8 @@ class AppBottomNav extends StatelessWidget {
       (Icons.pie_chart_outline, Icons.pie_chart, 'تقارير'),
       (Icons.more_horiz, Icons.more_horiz, 'المزيد'),
     ];
-    final visible = vendorMode ? [items.first, items.last] : items;
+    final limitedNav = vendorMode || clientMode;
+    final visible = limitedNav ? [items.first, items.last] : items;
     return Material(
       color: c.stone,
       child: SafeArea(
@@ -608,11 +611,12 @@ class IvorySheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: c.ivory,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    // Material (not DecoratedBox) so ListTile / ExpansionTile ink splash
+    // paint onto a proper Material ancestor in debug mode.
+    return Material(
+      color: c.ivory,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      clipBehavior: Clip.antiAlias,
       child: child,
     );
   }

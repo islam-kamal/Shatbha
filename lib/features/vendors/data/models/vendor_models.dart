@@ -72,3 +72,27 @@ class Review {
         createdAt: json['created_at']?.toString(),
       );
 }
+
+class PortfolioItem {
+  const PortfolioItem({
+    required this.id,
+    required this.title,
+    this.description,
+    this.workType,
+    this.mediaUrl,
+  });
+
+  final int id;
+  final String title;
+  final String? description;
+  final String? workType;
+  final String? mediaUrl;
+
+  factory PortfolioItem.fromJson(Map<String, dynamic> json) => PortfolioItem(
+        id: json['id'] as int,
+        title: json['title'] as String,
+        description: json['description'] as String?,
+        workType: json['work_type'] as String?,
+        mediaUrl: (json['media'] as Map<String, dynamic>?)?['url'] as String?,
+      );
+}

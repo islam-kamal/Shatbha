@@ -194,7 +194,7 @@ class _SnagTab extends StatelessWidget {
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, i) {
                       final snag = state.snags[i];
-                      return _SnagCard(snag: snag);
+                      return _SnagCard(snag: snag, projectId: projectId);
                     },
                   ),
                 ),
@@ -250,8 +250,9 @@ class _SnagTab extends StatelessWidget {
 }
 
 class _SnagCard extends StatelessWidget {
-  const _SnagCard({required this.snag});
+  const _SnagCard({required this.snag, required this.projectId});
   final SnagItem snag;
+  final int projectId;
 
   @override
   Widget build(BuildContext context) {
@@ -291,6 +292,13 @@ class _SnagCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (open)
+              TextButton(
+                onPressed: () => context
+                    .read<HandoverCubit>()
+                    .resolveSnag(projectId, snag.id),
+                child: const Text('حل'),
+              ),
           ],
         ),
       ),
@@ -366,22 +374,55 @@ class _SignOffTab extends StatelessWidget {
   Future<void> _addSignOff(BuildContext context) async {
     final name = TextEditingController();
     final role = TextEditingController();
+    final signature = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('توقيع'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'الاسم'),
-            ),
-            TextField(
-              controller: role,
-              decoration: const InputDecoration(labelText: 'الصفة'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'الاسم *'),
+              ),
+              TextField(
+                controller: role,
+                decoration: const InputDecoration(labelText: 'الصفة'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: signature,
+                decoration: const InputDecoration(
+                  labelText: 'التوقيع (اكتب اسمك)',
+                  hintText: 'توقيع إلكتروني',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 72,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: signature,
+                  builder: (_, value, __) => Text(
+                    value.text.isEmpty ? 'معاينة التوقيع' : value.text,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontStyle: FontStyle.italic,
+                      color: value.text.isEmpty
+                          ? Colors.grey
+                          : Colors.black87,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
@@ -393,6 +434,8 @@ class _SignOffTab extends StatelessWidget {
     await context.read<HandoverCubit>().addSignOff(projectId, {
       'party_name': name.text.trim(),
       if (role.text.trim().isNotEmpty) 'role': role.text.trim(),
+      if (signature.text.trim().isNotEmpty)
+        'signature_text': signature.text.trim(),
       'signed_at': formatDate(DateTime.now()),
     });
   }

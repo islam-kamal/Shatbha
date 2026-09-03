@@ -27,6 +27,20 @@ class PmRemoteDatasource {
     });
   }
 
+  Future<ProjectTask> updateTask(
+    int projectId,
+    int taskId,
+    Map<String, dynamic> body,
+  ) {
+    return guardDio(() async {
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/projects/$projectId/pm/tasks/$taskId',
+        data: body,
+      );
+      return ProjectTask.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
   Future<List<ProjectMilestone>> milestones(int projectId) {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>(

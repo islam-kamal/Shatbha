@@ -44,4 +44,20 @@ class QuoteRemoteDatasource {
       return QuoteRequest.fromJson(res.data!['data'] as Map<String, dynamic>);
     });
   }
+
+  Future<QuoteRequest> reject(int id) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/quotes/$id/reject',
+      );
+      return QuoteRequest.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<QuoteRequest> get(int id) {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/quotes/$id');
+      return QuoteRequest.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
 }

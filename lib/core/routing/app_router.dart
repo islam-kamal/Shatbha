@@ -8,6 +8,7 @@ import '../../features/auth/presentation/cubit/auth_bloc.dart';
 import '../../features/auth/presentation/screens/auth_screens.dart';
 import '../../features/catalog/presentation/screens/catalog_screens.dart';
 import '../../features/company/presentation/screens/company_screens.dart';
+import '../../features/client/presentation/screens/client_screens.dart';
 import '../../features/contractors_marketplace/presentation/screens/contractor_marketplace_screens.dart';
 import '../../features/design/presentation/screens/design_screens.dart';
 import '../../features/expenses/presentation/screens/expense_screens.dart';
@@ -50,6 +51,13 @@ GoRouter createRouter(AuthBloc authBloc) {
         if (loc == '/ledger' || loc == '/reports') {
           target = '/home';
         } else if (_isCompanyOnlyPath(loc)) {
+          target = '/home';
+        }
+      }
+      if (loggedIn && auth.user.isClient) {
+        if (loc == '/ledger' || loc == '/reports') {
+          target = '/home';
+        } else if (_isCompanyOnlyPath(loc) && !_isClientAllowedPath(loc)) {
           target = '/home';
         }
       }
@@ -193,6 +201,49 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         parentNavigatorKey: _rootKey,
+        path: '/quotes/:id/respond',
+        builder: (_, state) => QuoteRespondScreen(
+          quoteId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/quotes/:id',
+        builder: (_, state) => QuoteDetailScreen(
+          quoteId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/vendor/products',
+        builder: (_, __) => const SupplierProductsManageScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/vendor/portfolio',
+        builder: (_, __) => const VendorPortfolioManageScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/client/projects',
+        builder: (_, __) => const ClientProjectsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/client/projects/:id',
+        builder: (_, state) => ClientProjectDetailScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/client/projects/:id/design-approval',
+        builder: (_, state) => ClientDesignApprovalScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
         path: '/projects/:id',
         builder: (_, state) => ProjectDetailScreen(
           projectId: int.parse(state.pathParameters['id']!),
@@ -207,8 +258,24 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         parentNavigatorKey: _rootKey,
+        path: '/projects/:id/design/inspiration/add',
+        builder: (_, state) => AddMoodBoardItemScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+          initialRoom: state.uri.queryParameters['room'],
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
         path: '/projects/:id/design/mood-board/add',
         builder: (_, state) => AddMoodBoardItemScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+          initialRoom: state.uri.queryParameters['room'],
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/design/plans/add',
+        builder: (_, state) => AddFloorPlanScreen(
           projectId: int.parse(state.pathParameters['id']!),
         ),
       ),
@@ -217,6 +284,14 @@ GoRouter createRouter(AuthBloc authBloc) {
         path: '/projects/:id/design/floor-plans/add',
         builder: (_, state) => AddFloorPlanScreen(
           projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/design/plans/:planId',
+        builder: (_, state) => DesignPlanDetailScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+          planId: int.parse(state.pathParameters['planId']!),
         ),
       ),
       GoRoute(
@@ -286,6 +361,13 @@ GoRouter createRouter(AuthBloc authBloc) {
         parentNavigatorKey: _rootKey,
         path: '/procurement/:id/receive',
         builder: (_, state) => ReceiveGoodsScreen(
+          poId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/procurement/:id',
+        builder: (_, state) => PurchaseOrderDetailScreen(
           poId: int.parse(state.pathParameters['id']!),
         ),
       ),
@@ -365,8 +447,20 @@ const _companyOnlyPrefixes = [
 
 bool _isCompanyOnlyPath(String loc) {
   if (loc.startsWith('/contractors/')) return true;
+  if (loc.startsWith('/client/')) return false;
   for (final prefix in _companyOnlyPrefixes) {
     if (loc == prefix || loc.startsWith('$prefix/')) return true;
+  }
+  return false;
+}
+
+bool _isClientAllowedPath(String loc) {
+  if (loc.startsWith('/client/')) return true;
+  if (loc.startsWith('/projects/') &&
+      (loc.contains('/design') ||
+          loc.contains('/handover') ||
+          loc.contains('/pm'))) {
+    return true;
   }
   return false;
 }

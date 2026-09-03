@@ -56,6 +56,17 @@ class HandoverCubit extends Cubit<HandoverState> {
     }
   }
 
+  Future<void> resolveSnag(int projectId, int snagId) async {
+    try {
+      final snag = await _repo.resolveSnag(projectId, snagId);
+      emit(state.copyWith(
+        snags: state.snags.map((s) => s.id == snagId ? snag : s).toList(),
+      ));
+    } on Failure catch (e) {
+      emit(state.copyWith(error: e.message));
+    }
+  }
+
   Future<void> addSignOff(int projectId, Map<String, dynamic> body) async {
     try {
       final sign = await _repo.signOff(projectId, body);

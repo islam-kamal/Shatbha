@@ -41,4 +41,27 @@ class VendorRemoteDatasource {
       return Review.fromJson(res.data!['data'] as Map<String, dynamic>);
     });
   }
+
+  Future<List<PortfolioItem>> portfolio() {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>('/vendor/portfolio');
+      return jsonList(res.data, PortfolioItem.fromJson);
+    });
+  }
+
+  Future<PortfolioItem> createPortfolioItem(Map<String, dynamic> body) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/vendor/portfolio',
+        data: body,
+      );
+      return PortfolioItem.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<void> deletePortfolioItem(int id) {
+    return guardDio(() async {
+      await _dio.delete<Map<String, dynamic>>('/vendor/portfolio/$id');
+    });
+  }
 }
