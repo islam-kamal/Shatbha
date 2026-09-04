@@ -218,7 +218,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<int>(
-            initialValue: _customerId,
+            value: _customerId,
             hint: const Text('العميل'),
             items: [
               for (final p in _customers)
@@ -228,7 +228,7 @@ class _AddEntryScreenState extends State<AddEntryScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            initialValue: _type,
+            value: _type,
             items: const [
               DropdownMenuItem(value: 'cash', child: Text('تحصيل')),
               DropdownMenuItem(value: 'labor', child: Text('مصنعية')),
@@ -328,7 +328,16 @@ class _CustomerPickerScreenState extends State<CustomerPickerScreen> {
                       ? 'عميل إشراف · ${p.phone ?? ''}'
                       : 'عميل اتفاق · ${p.phone ?? ''}',
                   icon: Icons.person_outline,
-                  onTap: () => context.push('/customers/${p.id}/statement'),
+                  onTap: () {
+                    final returnParty =
+                        GoRouterState.of(context).uri.queryParameters['return'] ==
+                            '1';
+                    if (returnParty) {
+                      context.pop({'id': p.id, 'name': p.name});
+                    } else {
+                      context.push('/customers/${p.id}/statement');
+                    }
+                  },
                 ),
             ],
           ),

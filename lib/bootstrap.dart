@@ -9,6 +9,7 @@ import 'core/config/env.dart';
 import 'core/di/injection.dart';
 import 'core/logging/app_log.dart';
 import 'core/observers/bloc_observer.dart';
+import 'features/notifications/presentation/services/push_notification_service.dart';
 
 Future<void> bootstrap(AppFlavor flavor) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,7 @@ Future<void> bootstrap(AppFlavor flavor) async {
   await initializeDateFormatting('ar');
   await setupDependencies();
   AppLog.i('dependencies ready');
+  await sl<PushNotificationService>().init();
   runApp(const ShatbhaApp());
 }
 

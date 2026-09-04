@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/cubit/auth_bloc.dart';
 import '../../features/auth/presentation/screens/auth_screens.dart';
 import '../../features/catalog/presentation/screens/catalog_screens.dart';
+import '../../features/catalog/presentation/screens/party_directory_screens.dart';
 import '../../features/company/presentation/screens/company_screens.dart';
 import '../../features/client/presentation/screens/client_screens.dart';
 import '../../features/contractors_marketplace/presentation/screens/contractor_marketplace_screens.dart';
@@ -18,6 +19,8 @@ import '../../features/handover/presentation/screens/handover_screens.dart';
 import '../../features/jobs/presentation/screens/job_screens.dart';
 import '../../features/journal/presentation/screens/journal_screens.dart';
 import '../../features/materials/presentation/screens/material_screens.dart';
+import '../../features/notifications/presentation/screens/notification_screens.dart';
+import '../../features/projects/presentation/screens/collaboration_screens.dart';
 import '../../features/projects/presentation/screens/project_screens.dart';
 import '../../features/procurement/presentation/screens/procurement_screens.dart';
 import '../../features/project_manager/presentation/screens/pm_screens.dart';
@@ -50,7 +53,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       if (loggedIn && auth.user.isVendor) {
         if (loc == '/ledger' || loc == '/reports') {
           target = '/home';
-        } else if (_isCompanyOnlyPath(loc)) {
+        } else if (_isCompanyOnlyPath(loc) &&
+            !loc.startsWith('/vendor/') &&
+            loc != '/notifications' &&
+            !loc.startsWith('/quotes')) {
           target = '/home';
         }
       }
@@ -90,6 +96,24 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(parentNavigatorKey: _rootKey, path: '/definitions/add-customer', builder: (_, __) => const AddPartyScreen(type: 'customer')),
       GoRoute(parentNavigatorKey: _rootKey, path: '/definitions/add-contractor', builder: (_, __) => const AddPartyScreen(type: 'contractor')),
       GoRoute(parentNavigatorKey: _rootKey, path: '/definitions/add-supplier', builder: (_, __) => const AddSupplierScreen()),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/clients',
+        builder: (_, __) => const PartyDirectoryScreen(type: 'customer'),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/clients/add',
+        builder: (_, __) => const PartyFormScreen(type: 'customer'),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/clients/:id/edit',
+        builder: (_, state) => PartyFormScreen(
+          type: 'customer',
+          partyId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
       GoRoute(parentNavigatorKey: _rootKey, path: '/work-types', builder: (_, __) => const WorkTypesScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/items', builder: (_, __) => const ItemsScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/items/add', builder: (_, __) => const AddItemScreen()),
@@ -184,7 +208,29 @@ GoRouter createRouter(AuthBloc authBloc) {
           supplierId: int.parse(state.pathParameters['id']!),
         ),
       ),
-      GoRoute(parentNavigatorKey: _rootKey, path: '/contractors', builder: (_, __) => const ContractorsMarketplaceScreen()),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/contractors',
+        builder: (_, __) => const PartyDirectoryScreen(type: 'contractor'),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/contractors/add',
+        builder: (_, __) => const PartyFormScreen(type: 'contractor'),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/contractors/marketplace',
+        builder: (_, __) => const ContractorsMarketplaceScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/contractors/:id/edit',
+        builder: (_, state) => PartyFormScreen(
+          type: 'contractor',
+          partyId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
       GoRoute(
         parentNavigatorKey: _rootKey,
         path: '/contractors/:id/request-quote',
@@ -244,9 +290,55 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         parentNavigatorKey: _rootKey,
+        path: '/client/projects/:id/requests',
+        builder: (_, state) => ClientProjectRequestsScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/notifications',
+        builder: (_, __) => const NotificationsInboxScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/vendor/projects',
+        builder: (_, __) => const VendorProjectsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/vendor/projects/:id',
+        builder: (_, state) => VendorProjectDetailScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
         path: '/projects/:id',
         builder: (_, state) => ProjectDetailScreen(
           projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/team',
+        builder: (_, state) => ProjectTeamScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/requests',
+        builder: (_, state) => ProjectRequestsScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/requests/:requestId',
+        builder: (_, state) => ProjectRequestDetailScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+          requestId: int.parse(state.pathParameters['requestId']!),
         ),
       ),
       GoRoute(
@@ -418,6 +510,8 @@ const _companyOnlyPrefixes = [
   '/pnl',
   '/reports',
   '/definitions',
+  '/clients',
+  '/contractors',
   '/work-types',
   '/items',
   '/customers',
@@ -456,6 +550,7 @@ bool _isCompanyOnlyPath(String loc) {
 
 bool _isClientAllowedPath(String loc) {
   if (loc.startsWith('/client/')) return true;
+  if (loc == '/notifications' || loc.startsWith('/notifications/')) return true;
   if (loc.startsWith('/projects/') &&
       (loc.contains('/design') ||
           loc.contains('/handover') ||

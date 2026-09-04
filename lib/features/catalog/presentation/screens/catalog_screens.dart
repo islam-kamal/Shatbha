@@ -268,13 +268,16 @@ class AddPartyScreen extends StatefulWidget {
 class _AddPartyScreenState extends State<AddPartyScreen> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
+  final _email = TextEditingController();
   String _kind = 'agreement';
   final _percent = TextEditingController(text: '8');
+  bool _loading = false;
 
   @override
   void dispose() {
     _name.dispose();
     _phone.dispose();
+    _email.dispose();
     _percent.dispose();
     super.dispose();
   }
@@ -292,12 +295,23 @@ class _AddPartyScreenState extends State<AddPartyScreen> {
         children: [
           TextField(
             controller: _name,
-            decoration: const InputDecoration(labelText: 'الاسم'),
+            decoration: const InputDecoration(labelText: 'الاسم *'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _email,
+            decoration: const InputDecoration(
+              labelText: 'البريد الإلكتروني *',
+              helperText: 'يُنشأ حساب دخول وتُرسل كلمة مرور مؤقتة لهذا البريد',
+            ),
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _phone,
             decoration: const InputDecoration(labelText: 'الهاتف'),
+            keyboardType: TextInputType.phone,
           ),
           if (isCustomer) ...[
             const SizedBox(height: 12),
@@ -321,21 +335,52 @@ class _AddPartyScreenState extends State<AddPartyScreen> {
           ],
           const SizedBox(height: 24),
           AtelierButton(
-            label: 'حفظ',
-            onPressed: () async {
-              await sl<CatalogRepository>().createParty({
-                'type': widget.type,
-                'name': _name.text.trim(),
-                'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-                'kind': isCustomer ? _kind : 'agreement',
-                if (_kind == 'supervision')
-                  'supervision_percent': int.tryParse(_percent.text) ?? 8,
-              });
-              if (context.mounted) {
-                await showAtelierSuccess(context, body: 'تم الحفظ');
-                if (context.mounted) context.pop();
-              }
-            },
+            label: _loading ? 'جاري الحفظ…' : 'حفظ',
+            onPressed: _loading
+                ? null
+                : () async {
+                    if (_name.text.trim().isEmpty ||
+                        _email.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('الاسم والبريد مطلوبان'),
+                        ),
+                      );
+                      return;
+                    }
+                    setState(() => _loading = true);
+                    try {
+                      final saved =
+                          await sl<CatalogRepository>().createParty({
+                        'type': widget.type,
+                        'name': _name.text.trim(),
+                        'email': _email.text.trim(),
+                        'phone': _phone.text.trim().isEmpty
+                            ? null
+                            : _phone.text.trim(),
+                        'kind': isCustomer ? _kind : 'agreement',
+                        if (_kind == 'supervision')
+                          'supervision_percent':
+                              int.tryParse(_percent.text) ?? 8,
+                      });
+                      if (!context.mounted) return;
+                      final temp = saved.temporaryPassword;
+                      final body = temp == null
+                          ? 'تم الحفظ'
+                          : (saved.credentialsEmailed == true
+                              ? 'تم الحفظ وإرسال بيانات الدخول.\nكلمة المرور المؤقتة: $temp'
+                              : 'تم الحفظ. كلمة المرور المؤقتة: $temp');
+                      await showAtelierSuccess(context, body: body);
+                      if (context.mounted) context.pop();
+                    } on Failure catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.message)),
+                      );
+                    } finally {
+                      if (mounted) setState(() => _loading = false);
+                    }
+                  },
           ),
         ],
       ),

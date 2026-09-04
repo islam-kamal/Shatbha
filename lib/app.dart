@@ -8,6 +8,8 @@ import 'core/logging/app_log.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/atelier_theme.dart';
 import 'features/auth/presentation/cubit/auth_bloc.dart';
+import 'features/notifications/presentation/cubit/notification_cubit.dart';
+import 'features/notifications/presentation/services/push_notification_service.dart';
 import 'features/shell/presentation/cubit/date_range_cubit.dart';
 import 'features/sync/presentation/cubit/sync_cubit.dart';
 
@@ -22,6 +24,7 @@ class _ShatbhaAppState extends State<ShatbhaApp> {
   late final AuthBloc _authBloc;
   late final DateRangeCubit _dates;
   late final SyncCubit _sync;
+  late final NotificationCubit _notifications;
   late final GoRouter _router;
 
   @override
@@ -30,7 +33,9 @@ class _ShatbhaAppState extends State<ShatbhaApp> {
     _authBloc = AuthBloc(sl())..add(const AuthStarted());
     _dates = DateRangeCubit();
     _sync = SyncCubit(sl())..refresh();
+    _notifications = NotificationCubit(sl());
     _router = createRouter(_authBloc);
+    sl<PushNotificationService>().bindRouter(_router);
     AppLog.i('app shell ready', tag: 'app');
   }
 
@@ -39,6 +44,7 @@ class _ShatbhaAppState extends State<ShatbhaApp> {
     _authBloc.close();
     _dates.close();
     _sync.close();
+    _notifications.close();
     super.dispose();
   }
 
@@ -49,19 +55,33 @@ class _ShatbhaAppState extends State<ShatbhaApp> {
         BlocProvider.value(value: _authBloc),
         BlocProvider.value(value: _dates),
         BlocProvider.value(value: _sync),
+        BlocProvider.value(value: _notifications),
       ],
-      child: MaterialApp.router(
-        title: 'شطبها',
-        debugShowCheckedModeBanner: false,
-        theme: buildAtelierTheme(),
-        locale: const Locale('ar'),
-        supportedLocales: const [Locale('ar')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        routerConfig: _router,
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) async {
+          final push = sl<PushNotificationService>();
+          if (state is AuthAuthenticated) {
+            await push.onAuthenticated();
+            if (context.mounted) {
+              context.read<NotificationCubit>().refreshUnread();
+            }
+          } else if (state is AuthGuest) {
+            await push.onLogout();
+          }
+        },
+        child: MaterialApp.router(
+          title: 'شطبها',
+          debugShowCheckedModeBanner: false,
+          theme: buildAtelierTheme(),
+          locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          routerConfig: _router,
+        ),
       ),
     );
   }

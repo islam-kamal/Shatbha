@@ -391,12 +391,14 @@ class AppBottomNav extends StatelessWidget {
     required this.onTap,
     this.vendorMode = false,
     this.clientMode = false,
+    this.moreBadge,
   });
 
   final int index;
   final ValueChanged<int> onTap;
   final bool vendorMode;
   final bool clientMode;
+  final int? moreBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -423,6 +425,10 @@ class AppBottomNav extends StatelessWidget {
                     icon: index == i ? visible[i].$2 : visible[i].$1,
                     label: visible[i].$3,
                     selected: index == i,
+                    badge: (limitedNav ? i == 1 : i == 3) &&
+                            (moreBadge ?? 0) > 0
+                        ? moreBadge
+                        : null,
                     onTap: () => onTap(i),
                   ),
                 ),
@@ -440,12 +446,14 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.badge,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final int? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -459,7 +467,35 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 22),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: color, size: 22),
+                if (badge != null)
+                  Positioned(
+                    left: -6,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: c.teal,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        badge! > 9 ? '9+' : '$badge',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(
               label,
@@ -611,13 +647,82 @@ class IvorySheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
+    final base = Theme.of(context);
+    // App theme uses ivory text on stone. This sheet is ivory, so flip
+    // on-surface / body text to stone or content disappears.
+    final ivoryTheme = base.copyWith(
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.light(
+        surface: c.ivory,
+        primary: c.brass,
+        secondary: c.teal,
+        error: c.terracotta,
+        onPrimary: c.stone,
+        onSurface: c.stone,
+        outline: c.brass.withValues(alpha: 0.45),
+      ),
+      textTheme: base.textTheme.apply(
+        bodyColor: c.stone,
+        displayColor: c.stone,
+      ),
+      primaryTextTheme: base.primaryTextTheme.apply(
+        bodyColor: c.stone,
+        displayColor: c.stone,
+      ),
+      iconTheme: IconThemeData(color: c.stone),
+      listTileTheme: ListTileThemeData(
+        textColor: c.stone,
+        iconColor: c.stone.withValues(alpha: 0.7),
+        subtitleTextStyle: TextStyle(
+          color: c.stone.withValues(alpha: 0.6),
+          fontSize: 13,
+        ),
+      ),
+      expansionTileTheme: ExpansionTileThemeData(
+        textColor: c.stone,
+        iconColor: c.brass,
+        collapsedTextColor: c.stone,
+        collapsedIconColor: c.stone.withValues(alpha: 0.7),
+      ),
+      dividerColor: c.stone.withValues(alpha: 0.12),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.72),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        hintStyle: TextStyle(color: c.stone.withValues(alpha: 0.45)),
+        labelStyle: TextStyle(
+          color: c.stone.withValues(alpha: 0.8),
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: c.brass.withValues(alpha: 0.45)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: c.brass.withValues(alpha: 0.45)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: c.brass, width: 1.4),
+        ),
+      ),
+    );
     // Material (not DecoratedBox) so ListTile / ExpansionTile ink splash
     // paint onto a proper Material ancestor in debug mode.
     return Material(
       color: c.ivory,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       clipBehavior: Clip.antiAlias,
-      child: child,
+      child: Theme(
+        data: ivoryTheme,
+        child: DefaultTextStyle.merge(
+          style: TextStyle(color: c.stone, fontSize: 14, height: 1.5),
+          child: child,
+        ),
+      ),
     );
   }
 }

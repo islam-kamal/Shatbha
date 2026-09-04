@@ -6,6 +6,7 @@ import 'package:shatbha/core/core.dart';
 import 'package:shatbha/features/auth/data/repositories/auth_repository.dart';
 import 'package:shatbha/features/auth/presentation/cubit/auth_bloc.dart';
 import 'package:shatbha/features/auth/data/models/auth_models.dart';
+import 'package:shatbha/features/notifications/presentation/cubit/notification_cubit.dart';
 import 'package:shatbha/features/sync/presentation/cubit/sync_cubit.dart';
 import '../cubit/date_range_cubit.dart';
 
@@ -23,6 +24,7 @@ class ShellScaffold extends StatelessWidget {
     final limitedNav = vendorMode || clientMode;
     final shellIndex = navigationShell.currentIndex;
     final navIndex = limitedNav ? (shellIndex >= 3 ? 1 : 0) : shellIndex;
+    final unread = context.watch<NotificationCubit>().state.unread;
 
     return Scaffold(
       body: navigationShell,
@@ -30,6 +32,7 @@ class ShellScaffold extends StatelessWidget {
         vendorMode: vendorMode,
         clientMode: clientMode,
         index: navIndex,
+        moreBadge: unread > 0 ? unread : null,
         onTap: (i) {
           if (limitedNav) {
             navigationShell.goBranch(i == 0 ? 0 : 3);
@@ -95,6 +98,11 @@ class HomeScreen extends StatelessWidget {
           onTap: () => context.push('/projects'),
         ),
         HomeNavTile(
+          title: 'العملاء',
+          icon: Icons.people_outline,
+          onTap: () => context.push('/clients'),
+        ),
+        HomeNavTile(
           title: 'التصميم',
           icon: Icons.palette_outlined,
           onTap: () => context.push('/design'),
@@ -129,6 +137,11 @@ class HomeScreen extends StatelessWidget {
           icon: Icons.show_chart,
           onTap: () => context.push('/pnl'),
         ),
+        HomeNavTile(
+          title: 'التنبيهات',
+          icon: Icons.notifications_outlined,
+          onTap: () => context.push('/notifications'),
+        ),
       ];
 
   List<Widget> _vendorTiles(BuildContext context, AuthUser user) {
@@ -153,9 +166,19 @@ class HomeScreen extends StatelessWidget {
         onTap: () => context.push('/quotes'),
       ),
       HomeNavTile(
+        title: 'مشاريعي',
+        icon: Icons.apartment_outlined,
+        onTap: () => context.push('/vendor/projects'),
+      ),
+      HomeNavTile(
         title: 'معرض الأعمال',
         icon: Icons.photo_library_outlined,
         onTap: () => context.push('/vendor/portfolio'),
+      ),
+      HomeNavTile(
+        title: 'التنبيهات',
+        icon: Icons.notifications_outlined,
+        onTap: () => context.push('/notifications'),
       ),
       HomeNavTile(
         title: 'ملفي',
@@ -191,7 +214,9 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       setState(() {
         _projects = rows;
         _loading = false;
+        _error = null;
       });
+      context.read<NotificationCubit>().refreshUnread();
     } on Failure catch (e) {
       if (!mounted) return;
       setState(() {
@@ -203,6 +228,10 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationCubit>().state.unread;
+    final pendingDesign = _projects
+        .where((p) => (p['design_status'] as String?) == 'pending')
+        .toList();
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -212,9 +241,47 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: BrandLockup(slogan: 'حساب عميل — متابعة مشاريعك'),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: BrandLockup(slogan: 'حساب عميل — متابعة مشاريعك'),
+                    ),
+                    IconButton(
+                      tooltip: 'التنبيهات',
+                      onPressed: () => context.push('/notifications'),
+                      icon: Badge(
+                        isLabelVisible: unread > 0,
+                        label: Text('$unread'),
+                        child: const Icon(Icons.notifications_outlined),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+            if (pendingDesign.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Material(
+                  color: context.atelier.teal.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  child: ListTile(
+                    leading: Icon(Icons.palette_outlined,
+                        color: context.atelier.teal),
+                    title: const Text('تصميم بانتظار اعتمادك'),
+                    subtitle: Text(
+                      pendingDesign
+                          .map((p) => (p['title'] ?? p['name']).toString())
+                          .join(' · '),
+                    ),
+                    trailing: const Icon(Icons.chevron_left),
+                    onTap: () {
+                      final id = pendingDesign.first['id'] as int;
+                      context.push('/client/projects/$id/design-approval');
+                    },
+                  ),
+                ),
+              ),
             const TabBar(
               tabs: [
                 Tab(text: 'مشروعي'),
@@ -318,6 +385,7 @@ class _ClientProjectsTab extends StatelessWidget {
           final name = (p['title'] ?? p['name']) as String? ?? 'مشروع';
           final status = p['status'] as String? ?? 'draft';
           final progress = _clientProgressPercent(p, status);
+          final designStatus = p['design_status'] as String? ?? 'draft';
           return LedgerCard(
             row: LedgerRow(
               id: p['id'] as int,
@@ -325,9 +393,16 @@ class _ClientProjectsTab extends StatelessWidget {
               subtitle: '${_clientStatusLabel(status)} · ${p['address'] ?? ''}',
               amount: p['budget']?.toString() ?? '—',
               accent: c.teal,
-              badge: '$progress%',
+              badge: designStatus == 'pending' ? 'تصميم' : '$progress%',
             ),
-            onTap: () => context.push('/client/projects/${p['id']}'),
+            onTap: () {
+              final id = p['id'] as int;
+              if (designStatus == 'pending') {
+                context.push('/client/projects/$id/design-approval');
+              } else {
+                context.push('/client/projects/$id');
+              }
+            },
           );
         },
       ),
@@ -371,17 +446,24 @@ class _ClientUpdatesTab extends StatelessWidget {
           final name = (p['title'] ?? p['name']) as String? ?? 'مشروع';
           final status = p['status'] as String? ?? 'draft';
           final progress = _clientProgressPercent(p, status);
-          final designStatus = p['design_status'] as String? ?? 'pending';
+          final designStatus = p['design_status'] as String? ?? 'draft';
           return LedgerCard(
             row: LedgerRow(
               id: p['id'] as int,
               title: name,
               subtitle: 'التقدم $progress% · ${_designStatusLabel(designStatus)}',
               amount: _clientStatusLabel(status),
-              accent: c.dateTint,
-              badge: 'تحديث',
+              accent: designStatus == 'pending' ? c.teal : c.dateTint,
+              badge: designStatus == 'pending' ? 'اعتماد' : 'تحديث',
             ),
-            onTap: () => context.push('/client/projects/${p['id']}'),
+            onTap: () {
+              final id = p['id'] as int;
+              if (designStatus == 'pending') {
+                context.push('/client/projects/$id/design-approval');
+              } else {
+                context.push('/client/projects/$id');
+              }
+            },
           );
         },
       ),
@@ -654,6 +736,14 @@ class MoreScreen extends StatelessWidget {
             const SectionLabel('التشغيل'),
             IvoryMenuCard(
               children: [
+                HubRow(
+                  title: 'التنبيهات',
+                  subtitle: context.watch<NotificationCubit>().state.unread > 0
+                      ? '${context.watch<NotificationCubit>().state.unread} غير مقروء'
+                      : 'صندوق الوارد',
+                  icon: Icons.notifications_outlined,
+                  onTap: () => context.push('/notifications'),
+                ),
                 HubRow(
                   title: 'بحث',
                   subtitle: 'البحث في القيود',

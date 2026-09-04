@@ -47,6 +47,7 @@ class CatalogRepository {
         type: body['type'] as String? ?? 'customer',
         name: body['name'] as String,
         phone: body['phone'] as String?,
+        email: body['email'] as String?,
         kind: body['kind'] as String?,
         openingBalance: body['opening_balance']?.toString() ?? '0.00',
         agreementEstimate: body['agreement_estimate']?.toString(),
@@ -55,6 +56,17 @@ class CatalogRepository {
       await _upsertParty(party);
       return party;
     }
+  }
+
+  Future<Party> updateParty(int id, Map<String, dynamic> body) async {
+    final party = await _api.updateParty(id, body);
+    await _upsertParty(party);
+    return party;
+  }
+
+  Future<void> deleteParty(int id) async {
+    await _api.deleteParty(id);
+    await (_db.delete(_db.cachedParties)..where((t) => t.id.equals(id))).go();
   }
 
   Future<List<NamedItem>> workTypes() async {

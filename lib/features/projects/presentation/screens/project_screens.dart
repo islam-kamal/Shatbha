@@ -182,6 +182,20 @@ class _ProjectDetailView extends StatelessWidget {
                       icon: Icons.request_quote_outlined,
                       onTap: () => context.push('/quotes?project_id=$projectId'),
                     ),
+                    HubRow(
+                      title: 'فريق المشروع',
+                      subtitle: 'أعضاء · دعوة عميل',
+                      icon: Icons.groups_outlined,
+                      onTap: () =>
+                          context.push('/projects/$projectId/team'),
+                    ),
+                    HubRow(
+                      title: 'الطلبات',
+                      subtitle: 'موافقات ومتابعة',
+                      icon: Icons.assignment_turned_in_outlined,
+                      onTap: () =>
+                          context.push('/projects/$projectId/requests'),
+                    ),
                   ],
                 ),
               ],
@@ -202,17 +216,17 @@ class AddProjectScreen extends StatefulWidget {
 
 class _AddProjectScreenState extends State<AddProjectScreen> {
   final _name = TextEditingController();
-  final _client = TextEditingController();
   final _address = TextEditingController();
   final _budget = TextEditingController();
   final _area = TextEditingController();
   final _description = TextEditingController();
+  int? _customerId;
+  String? _customerName;
   bool _saving = false;
 
   @override
   void dispose() {
     _name.dispose();
-    _client.dispose();
     _address.dispose();
     _budget.dispose();
     _area.dispose();
@@ -220,13 +234,29 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     super.dispose();
   }
 
+  Future<void> _pickCustomer() async {
+    final picked =
+        await context.push<Map<String, dynamic>>('/customers/picker?return=1');
+    if (picked == null) return;
+    setState(() {
+      _customerId = picked['id'] as int?;
+      _customerName = picked['name'] as String?;
+    });
+  }
+
   Future<void> _save() async {
     if (_name.text.trim().isEmpty) return;
+    if (_customerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('اختر العميل')),
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       final project = await sl<ProjectRepository>().create({
         'title': _name.text.trim(),
-        if (_client.text.trim().isNotEmpty) 'client_name': _client.text.trim(),
+        'customer_id': _customerId,
         if (_address.text.trim().isNotEmpty) 'address': _address.text.trim(),
         if (_budget.text.trim().isNotEmpty) 'budget': _budget.text.trim(),
         if (_area.text.trim().isNotEmpty) 'area_sqm': _area.text.trim(),
@@ -261,9 +291,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               decoration: const InputDecoration(labelText: 'اسم المشروع *'),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _client,
-              decoration: const InputDecoration(labelText: 'اسم العميل'),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(_customerName ?? 'اختر العميل *',style: TextStyle(color: Colors.black),),
+              subtitle: _customerId == null
+                  ? const Text('مطلوب لربط حساب العميل',style: TextStyle(color: Colors.black),)
+                  : Text('#$_customerId',style: TextStyle(color: Colors.black),),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: _pickCustomer,
             ),
             const SizedBox(height: 12),
             TextField(
@@ -273,25 +308,24 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _area,
+              decoration: const InputDecoration(labelText: 'المساحة م²'),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'المساحة (م²)'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _budget,
-              keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'الميزانية'),
+              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _description,
-              maxLines: 3,
               decoration: const InputDecoration(labelText: 'الوصف'),
+              maxLines: 3,
             ),
             const SizedBox(height: 24),
             AtelierButton(
-              label: _saving ? 'جاري الحفظ...' : 'حفظ المشروع',
-              icon: Icons.check,
+              label: _saving ? 'جاري الحفظ…' : 'حفظ',
               onPressed: _saving ? null : _save,
             ),
           ],

@@ -9,6 +9,7 @@ class Project {
     this.address,
     this.budget = '0.00',
     this.clientName,
+    this.customerId,
     this.areaSqm,
     this.createdAt,
     this.updatedAt,
@@ -21,6 +22,7 @@ class Project {
   final String? address;
   final String budget;
   final String? clientName;
+  final int? customerId;
   final String? areaSqm;
   final String? createdAt;
   final String? updatedAt;
@@ -50,6 +52,8 @@ class Project {
       address: (json['site_address'] ?? json['address']) as String?,
       budget: jsonMoney(json['budget_planned'] ?? json['budget']),
       clientName: clientName,
+      customerId: json['customer_id'] as int? ??
+          (customer is Map ? customer['id'] as int? : null),
       areaSqm: json['area_sqm']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

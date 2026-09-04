@@ -24,6 +24,20 @@ class CatalogRemoteDatasource {
     });
   }
 
+  Future<Party> updateParty(int id, Map<String, dynamic> body) {
+    return guardDio(() async {
+      final res =
+          await _dio.put<Map<String, dynamic>>('/parties/$id', data: body);
+      return Party.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<void> deleteParty(int id) {
+    return guardDio(() async {
+      await _dio.delete('/parties/$id');
+    });
+  }
+
   Future<List<NamedItem>> workTypes() {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>('/work-types');

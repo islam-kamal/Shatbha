@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "904767862527",
+    "project_id": "shatbha-7f85c",
+    "storage_bucket": "shatbha-7f85c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:904767862527:android:3c19ca791742186150beca",
+        "android_client_info": {
+          "package_name": "com.shatbha.shatbha"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAh2QRPgDss41_uA7gvB-Rh71lc9zKoCTc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

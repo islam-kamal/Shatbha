@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shatbha/core/core.dart';
+import 'package:shatbha/features/design/data/models/design_models.dart';
+import 'package:shatbha/features/media/presentation/widgets/attachment_viewer.dart';
 
 import '../cubit/client_cubit.dart';
 
@@ -160,6 +162,14 @@ class _ClientProjectDetailView extends StatelessWidget {
                       onTap: () =>
                           context.push('/projects/$projectId/handover'),
                     ),
+                    HubRow(
+                      title: 'الطلبات',
+                      subtitle: 'موافقات ومتابعة من الشركة',
+                      icon: Icons.assignment_turned_in_outlined,
+                      onTap: () => context.push(
+                        '/client/projects/$projectId/requests',
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -269,12 +279,24 @@ class _ClientDesignApprovalView extends StatelessWidget {
                             const SizedBox(height: 16),
                             const SectionLabel('الأسلوب والملاحظات'),
                             Text(
-                              package.boards.first.style == null
-                                  ? '—'
-                                  : (package.boards.first.style ?? ''),
+                              () {
+                                final style = package.boards.first.style;
+                                if (style == null || style.isEmpty) {
+                                  return '—';
+                                }
+                                return kStyleLabels[style] ?? style;
+                              }(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
                             ),
-                            if (package.boards.first.designerNotes != null)
+                            if ((package.boards.first.designerNotes ?? '')
+                                .trim()
+                                .isNotEmpty) ...[
+                              const SizedBox(height: 8),
                               Text(package.boards.first.designerNotes!),
+                            ],
                           ],
                           const SizedBox(height: 16),
                           const SectionLabel('لوحة الإلهام'),
@@ -283,12 +305,43 @@ class _ClientDesignApprovalView extends StatelessWidget {
                           else
                             ...package.inspirationByRoom.entries.map(
                               (e) => ExpansionTile(
-                                title: Text('${e.key} (${e.value.length})'),
+                                initiallyExpanded: true,
+                                title: Text(
+                                  '${kRoomLabels[e.key] ?? e.key} (${e.value.length})',
+                                ),
                                 children: e.value
                                     .map(
                                       (item) => ListTile(
+                                        onTap: () => openAttachment(
+                                          context,
+                                          title: item.title,
+                                          url: item.imageUrl,
+                                          isPdf: item.isPdf,
+                                        ),
+                                        leading: _thumb(
+                                          context,
+                                          url: item.imageUrl,
+                                          isPdf: item.isPdf,
+                                        ),
                                         title: Text(item.title),
-                                        subtitle: Text(item.category ?? ''),
+                                        subtitle: Text(
+                                          [
+                                            if (item.category != null)
+                                              kCategoryLabels[item.category!] ??
+                                                  item.category!,
+                                            if ((item.notes ?? '')
+                                                .trim()
+                                                .isNotEmpty)
+                                              item.notes!,
+                                            if (item.imageUrl != null)
+                                              item.isPdf ? 'PDF' : 'صورة',
+                                          ].join(' · '),
+                                        ),
+                                        trailing: AttachmentActionRow(
+                                          title: item.title,
+                                          url: item.imageUrl,
+                                          isPdf: item.isPdf,
+                                        ),
                                       ),
                                     )
                                     .toList(),
@@ -296,14 +349,33 @@ class _ClientDesignApprovalView extends StatelessWidget {
                             ),
                           const SizedBox(height: 16),
                           const SectionLabel('المخططات'),
-                          ...package.plans.map(
-                            (p) => ListTile(
-                              title: Text(p.title),
-                              subtitle: Text(
-                                '${p.type} · v${p.version} · ${p.status}',
+                          if (package.plans.isEmpty)
+                            const Text('لا مخططات مرفقة')
+                          else
+                            ...package.plans.map(
+                              (p) => ListTile(
+                                onTap: () => openAttachment(
+                                  context,
+                                  title: p.title,
+                                  url: p.imageUrl,
+                                  isPdf: p.isPdf,
+                                ),
+                                leading: _thumb(
+                                  context,
+                                  url: p.imageUrl,
+                                  isPdf: p.isPdf,
+                                ),
+                                title: Text(p.title),
+                                subtitle: Text(
+                                  '${kPlanTypeLabels[p.type] ?? p.type} · v${p.version} · ${planStatusLabel(p.status)}',
+                                ),
+                                trailing: AttachmentActionRow(
+                                  title: p.title,
+                                  url: p.imageUrl,
+                                  isPdf: p.isPdf,
+                                ),
                               ),
                             ),
-                          ),
                           const SizedBox(height: 16),
                           const SectionLabel('BOQ'),
                           KpiStrip(
@@ -323,15 +395,23 @@ class _ClientDesignApprovalView extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          ...package.boqLines.map(
-                            (l) => ListTile(
-                              title: Text(l.title),
-                              subtitle: Text(
-                                '${l.qty} ${l.unit ?? ''} × ${l.unitPrice}',
+                          if (package.boqLines.isEmpty)
+                            const Text('لا بنود في جدول الكميات')
+                          else
+                            ...package.boqLines.map(
+                              (l) => ListTile(
+                                title: Text(l.title),
+                                subtitle: Text(
+                                  '${l.qty} ${l.unit ?? ''} × ${l.unitPrice}',
+                                ),
+                                trailing: Text(
+                                  l.total,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
-                              trailing: Text(l.total),
                             ),
-                          ),
                           const SizedBox(height: 24),
                           if (canDecide) ...[
                             AtelierButton(
@@ -362,8 +442,9 @@ class _ClientDesignApprovalView extends StatelessWidget {
                             AtelierButton(
                               label: 'رفض مع ملاحظة',
                               kind: AtelierButtonKind.secondary,
-                              onPressed:
-                                  state.approving ? null : () => _reject(context),
+                              onPressed: state.approving
+                                  ? null
+                                  : () => _reject(context),
                             ),
                           ] else
                             Text(
@@ -378,6 +459,41 @@ class _ClientDesignApprovalView extends StatelessWidget {
       },
     );
   }
+}
+
+Widget _thumb(
+  BuildContext context, {
+  required String? url,
+  required bool isPdf,
+}) {
+  final c = context.atelier;
+  if (url != null && url.isNotEmpty && !isPdf) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        url,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => ColoredBox(
+          color: c.ivoryMuted,
+          child: Icon(Icons.broken_image_outlined, color: c.stone),
+        ),
+      ),
+    );
+  }
+  return Container(
+    width: 48,
+    height: 48,
+    decoration: BoxDecoration(
+      color: c.ivoryMuted,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Icon(
+      isPdf ? Icons.picture_as_pdf_outlined : Icons.image_outlined,
+      color: c.stone.withValues(alpha: 0.7),
+    ),
+  );
 }
 
 class _DetailRow extends StatelessWidget {

@@ -68,4 +68,28 @@ class ClientRemoteDatasource {
       );
     });
   }
+
+  Future<List<Map<String, dynamic>>> requests(int projectId) {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/client/projects/$projectId/requests',
+      );
+      return ((res.data!['data'] as List?) ?? []).cast<Map<String, dynamic>>();
+    });
+  }
+
+  Future<void> decideRequest(
+    int projectId,
+    int requestId, {
+    required bool approve,
+    String? note,
+  }) {
+    return guardDio(() async {
+      final path = approve ? 'approve' : 'reject';
+      await _dio.post(
+        '/client/projects/$projectId/requests/$requestId/$path',
+        data: {if (note != null) 'note': note},
+      );
+    });
+  }
 }

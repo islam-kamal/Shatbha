@@ -13,6 +13,7 @@ import '../../features/jobs/injection.dart';
 import '../../features/journal/injection.dart';
 import '../../features/materials/injection.dart';
 import '../../features/media/injection.dart';
+import '../../features/notifications/injection.dart';
 import '../../features/procurement/injection.dart';
 import '../../features/project_manager/injection.dart';
 import '../../features/projects/injection.dart';
@@ -52,5 +53,6 @@ Future<void> setupDependencies() async {
   registerWarehouse(sl);
   registerHandover(sl);
   registerClient(sl);
+  registerNotifications(sl);
   AppLog.i('DI registered core + features');
 }

@@ -25,4 +25,20 @@ class ClientRepository {
     String body,
   ) =>
       _api.addPlanComment(projectId, planId, body);
+
+  Future<List<Map<String, dynamic>>> requests(int projectId) =>
+      _api.requests(projectId);
+
+  Future<void> decideRequest(
+    int projectId,
+    int requestId, {
+    required bool approve,
+    String? note,
+  }) =>
+      _api.decideRequest(
+        projectId,
+        requestId,
+        approve: approve,
+        note: note,
+      );
 }

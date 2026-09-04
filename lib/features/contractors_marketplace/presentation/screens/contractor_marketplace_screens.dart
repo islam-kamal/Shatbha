@@ -36,6 +36,11 @@ class _ContractorsView extends StatelessWidget {
             icon: const Icon(Icons.request_quote_outlined),
             onPressed: () => context.push('/quotes'),
           ),
+          IconButton(
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'سجل المقاولين',
+            onPressed: () => context.push('/contractors'),
+          ),
         ],
       ),
       body: BlocBuilder<QuoteCubit, QuoteState>(
@@ -511,7 +516,7 @@ class _QuoteDetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style:  TextStyle(fontWeight: FontWeight.w500,color: c.stone),
             ),
           ),
         ],
