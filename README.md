@@ -33,25 +33,27 @@ This repository is the **Flutter app**. The Laravel API lives separately:
 
 ## 1. Product idea
 
-Finishing ateliers in Egypt typically juggle:
+**شطبها** is a **Project Operating System** for Egyptian finishing ateliers — not a loose set of CRUD modules.
 
-- Homeowners (عملاء) and their payments / supervision agreements
-- Contractors and suppliers (مقاولون / موردون)
-- Project design packages (moodboard, plans, BOQ) that need client sign-off
-- Site execution, materials, procurement, warehouse, and handover
-- Day-to-day cash journal, expenses, jobs, and reports
+Lifecycle spine (see **[docs/PROJECT_OS.md](docs/PROJECT_OS.md)**):
 
-**شطبها** unifies that into one Arabic RTL app with three sides of the same business:
+```text
+Lead → Site Visit → Proposal → Contract → Project
+  → Design / Selections / Approval → Procurement / Site
+  → Inspection / Handover → Warranty → Closed
+```
+
+Four pipes around each project: **Sales**, **Delivery**, **Procurement & ops**, **Finance**.  
+UX rule: every screen answers status → next action → owner → deadline → approval/money/time.
 
 | Side | Who | Goal |
 | --- | --- | --- |
-| **Company** | Admin / clerk of the finishing office | Run CRM, ledger, projects, design, procurement, reports |
-| **Vendor** | Contractor or supplier with a login | Respond to quotes, manage portfolio/products, work on assigned projects |
-| **Client** | Homeowner linked to a customer party | Follow their projects, approve design, see handover docs |
+| **Company** | Admin / clerk | Action Required command center; run the full lifecycle |
+| **Vendor** | Contractor or supplier | RFQs, assigned jobs, products, payments |
+| **Client** | Homeowner | Progress, approvals, payments, documents (no cost/margin) |
 
-One login screen tries company → vendor → client credentials in order, so each persona uses the same app binary with role-gated navigation.
-
-Visual language (“Atelier”): dark stone chrome, brass accents, cream **IvorySheet** content panels, Arabic typography (IBM Plex Sans Arabic / Cairo).
+One login screen tries company → vendor → client credentials in order.  
+Visual language (“Atelier”): dark stone chrome, brass accents, cream **IvorySheet** panels, Arabic typography (IBM Plex Sans Arabic / Cairo).
 
 ---
 
@@ -357,6 +359,7 @@ Shatbha-backend/               ← sibling Laravel API (separate clone)
 
 ## 11. Related docs
 
+- **[docs/PROJECT_OS.md](docs/PROJECT_OS.md)** — Full Project OS: statuses, business rules, role screens, phase acceptance
 - **[RUN.md](RUN.md)** — Start Laravel on `127.0.0.1:8000`, `adb reverse`, FVM Flutter flavors, emulator/USB checklist
 - Backend README (in `Shatbha-backend`) — migrations, seeders, env (`MAIL_*`, `FIREBASE_CREDENTIALS`), deploy notes
 

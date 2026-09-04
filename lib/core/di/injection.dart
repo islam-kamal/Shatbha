@@ -20,6 +20,7 @@ import '../../features/projects/injection.dart';
 import '../../features/reports/injection.dart';
 import '../../features/sync/injection.dart';
 import '../../features/vendors/injection.dart';
+import '../../features/project_os/injection.dart';
 import '../../features/warehouse/injection.dart';
 import '../database/app_database.dart';
 import '../logging/app_log.dart';
@@ -54,5 +55,6 @@ Future<void> setupDependencies() async {
   registerHandover(sl);
   registerClient(sl);
   registerNotifications(sl);
+  registerProjectOs(sl);
   AppLog.i('DI registered core + features');
 }

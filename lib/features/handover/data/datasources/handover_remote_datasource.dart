@@ -11,7 +11,7 @@ class HandoverRemoteDatasource {
   Future<List<DeliveryMilestone>> deliveryMilestones(int projectId) {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>(
-        '/projects/$projectId/delivery-milestones',
+        '/projects/$projectId/handover/milestones',
       );
       return jsonList(res.data, DeliveryMilestone.fromJson);
     });
@@ -20,7 +20,7 @@ class HandoverRemoteDatasource {
   Future<List<SnagItem>> snagItems(int projectId) {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>(
-        '/projects/$projectId/snag-items',
+        '/projects/$projectId/handover/snags',
       );
       return jsonList(res.data, SnagItem.fromJson);
     });
@@ -29,7 +29,7 @@ class HandoverRemoteDatasource {
   Future<SnagItem> createSnagItem(int projectId, Map<String, dynamic> body) {
     return guardDio(() async {
       final res = await _dio.post<Map<String, dynamic>>(
-        '/projects/$projectId/snag-items',
+        '/projects/$projectId/handover/snags',
         data: body,
       );
       return SnagItem.fromJson(res.data!['data'] as Map<String, dynamic>);
@@ -49,7 +49,7 @@ class HandoverRemoteDatasource {
   Future<List<HandoverChecklistItem>> checklist(int projectId) {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>(
-        '/projects/$projectId/handover-checklist',
+        '/projects/$projectId/handover/checklist',
       );
       return jsonList(res.data, HandoverChecklistItem.fromJson);
     });
@@ -57,11 +57,12 @@ class HandoverRemoteDatasource {
 
   Future<HandoverChecklistItem> updateChecklistItem(
     int projectId,
+    int itemId,
     Map<String, dynamic> body,
   ) {
     return guardDio(() async {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/projects/$projectId/handover-checklist',
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/projects/$projectId/handover/checklist/$itemId',
         data: body,
       );
       return HandoverChecklistItem.fromJson(
@@ -73,7 +74,7 @@ class HandoverRemoteDatasource {
   Future<List<SignOff>> signOffs(int projectId) {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>(
-        '/projects/$projectId/sign-offs',
+        '/projects/$projectId/handover/sign-offs',
       );
       return jsonList(res.data, SignOff.fromJson);
     });
@@ -82,20 +83,25 @@ class HandoverRemoteDatasource {
   Future<SignOff> createSignOff(int projectId, Map<String, dynamic> body) {
     return guardDio(() async {
       final res = await _dio.post<Map<String, dynamic>>(
-        '/projects/$projectId/sign-offs',
+        '/projects/$projectId/handover/sign-offs',
         data: body,
       );
       return SignOff.fromJson(res.data!['data'] as Map<String, dynamic>);
     });
   }
 
-  Future<HandoverSummary> completeHandover(int projectId, Map<String, dynamic> body) {
+  Future<HandoverSummary> completeHandover(
+    int projectId,
+    Map<String, dynamic> body,
+  ) {
     return guardDio(() async {
       final res = await _dio.post<Map<String, dynamic>>(
-        '/projects/$projectId/handover',
+        '/projects/$projectId/handover/complete',
         data: body,
       );
-      return HandoverSummary.fromJson(res.data!['data'] as Map<String, dynamic>);
+      return HandoverSummary.fromJson(
+        res.data!['data'] as Map<String, dynamic>,
+      );
     });
   }
 }

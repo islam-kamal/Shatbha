@@ -241,9 +241,11 @@ class _SnagTab extends StatelessWidget {
       ),
     );
     if (ok != true || title.text.trim().isEmpty || !context.mounted) return;
+    final loc = location.text.trim();
     await context.read<HandoverCubit>().addSnag(projectId, {
-      'title': title.text.trim(),
-      if (location.text.trim().isNotEmpty) 'location': location.text.trim(),
+      'title': loc.isEmpty
+          ? title.text.trim()
+          : '${title.text.trim()} — $loc',
       'status': 'open',
     });
   }
@@ -257,7 +259,7 @@ class _SnagCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
-    final open = snag.status == 'open';
+    final open = !const {'closed', 'resolved', 'fixed'}.contains(snag.status);
     return Material(
       color: c.ivory,
       borderRadius: BorderRadius.circular(16),
@@ -431,12 +433,10 @@ class _SignOffTab extends StatelessWidget {
       ),
     );
     if (ok != true || name.text.trim().isEmpty || !context.mounted) return;
+    final signedBy = name.text.trim();
+    final roleText = role.text.trim();
     await context.read<HandoverCubit>().addSignOff(projectId, {
-      'party_name': name.text.trim(),
-      if (role.text.trim().isNotEmpty) 'role': role.text.trim(),
-      if (signature.text.trim().isNotEmpty)
-        'signature_text': signature.text.trim(),
-      'signed_at': formatDate(DateTime.now()),
+      'signed_by': roleText.isEmpty ? signedBy : '$signedBy ($roleText)',
     });
   }
 }
@@ -449,7 +449,7 @@ class _CompleteTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
-    final done = state.summary?.status == 'completed';
+    final done = state.summary?.isComplete ?? false;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(

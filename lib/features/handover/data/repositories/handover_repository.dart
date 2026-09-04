@@ -21,9 +21,10 @@ class HandoverRepository {
 
   Future<HandoverChecklistItem> updateChecklist(
     int projectId,
+    int itemId,
     Map<String, dynamic> body,
   ) =>
-      _api.updateChecklistItem(projectId, body);
+      _api.updateChecklistItem(projectId, itemId, body);
 
   Future<List<SignOff>> signOffs(int projectId) => _api.signOffs(projectId);
 

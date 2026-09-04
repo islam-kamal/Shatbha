@@ -23,7 +23,9 @@ class HandoverState extends Equatable {
   final String? error;
   final bool saving;
 
-  int get openSnags => snags.where((s) => s.status == 'open').length;
+  int get openSnags => snags
+      .where((s) => !const {'closed', 'resolved', 'fixed'}.contains(s.status))
+      .length;
 
   int get checkedItems => checklist.where((c) => c.isChecked).length;
 

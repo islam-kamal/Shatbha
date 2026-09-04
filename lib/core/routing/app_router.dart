@@ -20,6 +20,15 @@ import '../../features/jobs/presentation/screens/job_screens.dart';
 import '../../features/journal/presentation/screens/journal_screens.dart';
 import '../../features/materials/presentation/screens/material_screens.dart';
 import '../../features/notifications/presentation/screens/notification_screens.dart';
+import '../../features/project_os/presentation/screens/audit_screens.dart';
+import '../../features/project_os/presentation/screens/change_order_screens.dart';
+import '../../features/project_os/presentation/screens/daily_log_screens.dart';
+import '../../features/project_os/presentation/screens/design_version_screens.dart';
+import '../../features/project_os/presentation/screens/leads_screens.dart';
+import '../../features/project_os/presentation/screens/payment_plan_screens.dart';
+import '../../features/project_os/presentation/screens/sales_wizard_screens.dart';
+import '../../features/project_os/presentation/screens/selections_screens.dart';
+import '../../features/project_os/presentation/screens/warranty_screens.dart';
 import '../../features/projects/presentation/screens/collaboration_screens.dart';
 import '../../features/projects/presentation/screens/project_screens.dart';
 import '../../features/procurement/presentation/screens/procurement_screens.dart';
@@ -191,6 +200,22 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(parentNavigatorKey: _rootKey, path: '/backup', builder: (_, __) => const BackupScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/projects', builder: (_, __) => const ProjectsScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/projects/add', builder: (_, __) => const AddProjectScreen()),
+
+      // ── Leads (Project OS) ──────────────────────────────────────────────
+      GoRoute(parentNavigatorKey: _rootKey, path: '/leads', builder: (_, __) => const LeadsScreen()),
+      GoRoute(parentNavigatorKey: _rootKey, path: '/leads/add', builder: (_, __) => const LeadFormScreen()),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/leads/:id',
+        builder: (_, state) =>
+            LeadDetailScreen(leadId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/leads/:id/win-wizard',
+        builder: (_, state) =>
+            WinWizardScreen(leadId: int.parse(state.pathParameters['id']!)),
+      ),
       GoRoute(parentNavigatorKey: _rootKey, path: '/design', builder: (_, __) => const DesignHubScreen()),
       GoRoute(parentNavigatorKey: _rootKey, path: '/vendors', builder: (_, __) => const VendorsScreen()),
       GoRoute(
@@ -292,6 +317,36 @@ GoRouter createRouter(AuthBloc authBloc) {
         parentNavigatorKey: _rootKey,
         path: '/client/projects/:id/requests',
         builder: (_, state) => ClientProjectRequestsScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+
+      // ── Client Project OS routes ────────────────────────────────────────
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/client/projects/:id/selections',
+        builder: (_, state) => SelectionsScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/client/projects/:id/change-orders',
+        builder: (_, state) => ChangeOrdersScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/client/projects/:id/payments',
+        builder: (_, state) => PaymentPlanScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/client/projects/:id/warranty',
+        builder: (_, state) => WarrantyScreen(
           projectId: int.parse(state.pathParameters['id']!),
         ),
       ),
@@ -437,6 +492,57 @@ GoRouter createRouter(AuthBloc authBloc) {
           projectId: int.parse(state.pathParameters['id']!),
         ),
       ),
+
+      // ── Project OS sub-routes ───────────────────────────────────────────
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/design-versions',
+        builder: (_, state) => DesignVersionsScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/selections',
+        builder: (_, state) => SelectionsScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/change-orders',
+        builder: (_, state) => ChangeOrdersScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/daily-logs',
+        builder: (_, state) => DailyLogsScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/warranty',
+        builder: (_, state) => WarrantyScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/audit',
+        builder: (_, state) => AuditScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/projects/:id/payment-plan',
+        builder: (_, state) => PaymentPlanScreen(
+          projectId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
       GoRoute(
         parentNavigatorKey: _rootKey,
         path: '/procurement',
@@ -503,6 +609,7 @@ int? _queryInt(String? raw) {
 
 const _companyOnlyPrefixes = [
   '/projects',
+  '/leads',
   '/journal',
   '/expenses',
   '/revenues',
@@ -559,7 +666,6 @@ bool _isClientAllowedPath(String loc) {
   }
   return false;
 }
-
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     _sub = stream.listen((_) => notifyListeners());

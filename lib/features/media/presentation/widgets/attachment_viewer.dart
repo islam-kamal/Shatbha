@@ -86,8 +86,11 @@ Future<void> downloadAttachment(
   } catch (e) {
     if (!context.mounted) return;
     messenger.hideCurrentSnackBar();
+    final msg = e is DioException && e.response?.statusCode == 403
+        ? 'فشل التحميل: الملف غير متاح (تحقق من ربط التخزين على السيرفر)'
+        : 'فشل التحميل: تعذر الوصول للملف';
     messenger.showSnackBar(
-      SnackBar(content: Text('فشل التحميل: $e')),
+      SnackBar(content: Text(msg)),
     );
   }
 }

@@ -36,8 +36,7 @@ class HandoverCubit extends Cubit<HandoverState> {
 
   Future<void> toggleChecklist(int projectId, HandoverChecklistItem item) async {
     try {
-      final updated = await _repo.updateChecklist(projectId, {
-        'id': item.id,
+      final updated = await _repo.updateChecklist(projectId, item.id, {
         'is_checked': !item.isChecked,
       });
       final list = state.checklist.map((c) => c.id == item.id ? updated : c).toList();

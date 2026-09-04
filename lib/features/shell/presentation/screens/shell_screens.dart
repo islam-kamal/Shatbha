@@ -7,6 +7,8 @@ import 'package:shatbha/features/auth/data/repositories/auth_repository.dart';
 import 'package:shatbha/features/auth/presentation/cubit/auth_bloc.dart';
 import 'package:shatbha/features/auth/data/models/auth_models.dart';
 import 'package:shatbha/features/notifications/presentation/cubit/notification_cubit.dart';
+import 'package:shatbha/features/project_os/data/project_os_api.dart';
+import 'package:shatbha/features/project_os/data/project_os_models.dart';
 import 'package:shatbha/features/sync/presentation/cubit/sync_cubit.dart';
 import '../cubit/date_range_cubit.dart';
 
@@ -73,25 +75,211 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: IvorySheet(
-              child: GridView.count(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.22,
-                children: isVendor
-                    ? _vendorTiles(context, user!)
-                    : _companyTiles(context),
-              ),
-            ),
+            child: isVendor
+                ? IvorySheet(
+                    child: GridView.count(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 1.22,
+                      children: _vendorTiles(context, user!),
+                    ),
+                  )
+                : const _CompanyHomeBody(),
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _companyTiles(BuildContext context) => [
+  List<Widget> _vendorTiles(BuildContext context, AuthUser user) {
+    if (user.role == 'supplier') {
+      return [
+        HomeNavTile(
+          title: 'منتجاتي',
+          icon: Icons.inventory_2_outlined,
+          onTap: () => context.push('/vendor/products'),
+        ),
+        HomeNavTile(
+          title: 'ملفي',
+          icon: Icons.storefront_outlined,
+          onTap: () => context.push('/vendors/${user.id}'),
+        ),
+      ];
+    }
+    return [
+      HomeNavTile(
+        title: 'طلبات العروض',
+        icon: Icons.request_quote_outlined,
+        onTap: () => context.push('/quotes'),
+      ),
+      HomeNavTile(
+        title: 'مشاريعي',
+        icon: Icons.apartment_outlined,
+        onTap: () => context.push('/vendor/projects'),
+      ),
+      HomeNavTile(
+        title: 'معرض الأعمال',
+        icon: Icons.photo_library_outlined,
+        onTap: () => context.push('/vendor/portfolio'),
+      ),
+      HomeNavTile(
+        title: 'التنبيهات',
+        icon: Icons.notifications_outlined,
+        onTap: () => context.push('/notifications'),
+      ),
+      HomeNavTile(
+        title: 'ملفي',
+        icon: Icons.engineering_outlined,
+        onTap: () => context.push('/vendors/${user.id}'),
+      ),
+    ];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Company home body — "المطلوب الآن" + expandable "كل الوحدات"
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CompanyHomeBody extends StatefulWidget {
+  const _CompanyHomeBody();
+
+  @override
+  State<_CompanyHomeBody> createState() => _CompanyHomeBodyState();
+}
+
+class _CompanyHomeBodyState extends State<_CompanyHomeBody> {
+  List<ActionRequiredItem> _actionItems = [];
+  bool _loadingActions = true;
+  bool _modulesExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActions();
+  }
+
+  Future<void> _loadActions() async {
+    try {
+      final items = await sl<ProjectOsApi>().commandCenter();
+      if (!mounted) return;
+      setState(() {
+        _actionItems = items;
+        _loadingActions = false;
+      });
+    } on Failure {
+      if (!mounted) return;
+      setState(() => _loadingActions = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    return IvorySheet(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+        children: [
+          // ── المطلوب الآن ──────────────────────────────────────────────────
+          Row(
+            children: [
+              Icon(Icons.bolt, color: c.brass, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                'المطلوب الآن',
+                style: TextStyle(
+                  color: c.stone,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (_loadingActions)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_actionItems.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: SheetCard(
+                child: ListTile(
+                  leading: Icon(Icons.check_circle_outline, color: c.teal),
+                  title: Text(
+                    'لا توجد إجراءات معلّقة',
+                    style: TextStyle(color: c.stone.withValues(alpha: 0.7)),
+                  ),
+                ),
+              ),
+            )
+          else
+            IvoryMenuCard(
+              children: [
+                for (final item in _actionItems)
+                  HubRow(
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    icon: _actionIcon(item.type),
+                    onTap: () {
+                      if (item.route != null) context.push(item.route!);
+                    },
+                  ),
+              ],
+            ),
+          const SizedBox(height: 20),
+
+          // ── كل الوحدات (expandable) ───────────────────────────────────────
+          GestureDetector(
+            onTap: () =>
+                setState(() => _modulesExpanded = !_modulesExpanded),
+            child: Row(
+              children: [
+                Icon(Icons.grid_view_outlined, color: c.brass, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'كل الوحدات',
+                  style: TextStyle(
+                    color: c.stone,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  _modulesExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: c.stone.withValues(alpha: 0.5),
+                ),
+              ],
+            ),
+          ),
+          if (_modulesExpanded) ...[
+            const SizedBox(height: 10),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.22,
+              children: _companyModuleTiles(context),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _companyModuleTiles(BuildContext context) => [
+        HomeNavTile(
+          title: 'العملاء المحتملون',
+          icon: Icons.person_search_outlined,
+          onTap: () => context.push('/leads'),
+        ),
         HomeNavTile(
           title: 'المشاريع',
           icon: Icons.apartment_outlined,
@@ -144,49 +332,15 @@ class HomeScreen extends StatelessWidget {
         ),
       ];
 
-  List<Widget> _vendorTiles(BuildContext context, AuthUser user) {
-    if (user.role == 'supplier') {
-      return [
-        HomeNavTile(
-          title: 'منتجاتي',
-          icon: Icons.inventory_2_outlined,
-          onTap: () => context.push('/vendor/products'),
-        ),
-        HomeNavTile(
-          title: 'ملفي',
-          icon: Icons.storefront_outlined,
-          onTap: () => context.push('/vendors/${user.id}'),
-        ),
-      ];
-    }
-    return [
-      HomeNavTile(
-        title: 'طلبات العروض',
-        icon: Icons.request_quote_outlined,
-        onTap: () => context.push('/quotes'),
-      ),
-      HomeNavTile(
-        title: 'مشاريعي',
-        icon: Icons.apartment_outlined,
-        onTap: () => context.push('/vendor/projects'),
-      ),
-      HomeNavTile(
-        title: 'معرض الأعمال',
-        icon: Icons.photo_library_outlined,
-        onTap: () => context.push('/vendor/portfolio'),
-      ),
-      HomeNavTile(
-        title: 'التنبيهات',
-        icon: Icons.notifications_outlined,
-        onTap: () => context.push('/notifications'),
-      ),
-      HomeNavTile(
-        title: 'ملفي',
-        icon: Icons.engineering_outlined,
-        onTap: () => context.push('/vendors/${user.id}'),
-      ),
-    ];
-  }
+  IconData _actionIcon(String type) => switch (type) {
+        'lead' => Icons.person_search_outlined,
+        'design_approval' => Icons.palette_outlined,
+        'payment' => Icons.payments_outlined,
+        'change_order' => Icons.edit_note_outlined,
+        'warranty' => Icons.verified_outlined,
+        'selection' => Icons.checklist_outlined,
+        _ => Icons.notification_important_outlined,
+      };
 }
 
 class ClientHomeScreen extends StatefulWidget {
@@ -233,7 +387,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         .where((p) => (p['design_status'] as String?) == 'pending')
         .toList();
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         body: Column(
           children: [
@@ -296,8 +450,9 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               ),
             const TabBar(
               tabs: [
-                Tab(text: 'مشروعي'),
-                Tab(text: 'التحديثات'),
+                Tab(text: 'التقدم'),
+                Tab(text: 'الموافقات'),
+                Tab(text: 'المدفوعات'),
                 Tab(text: 'المستندات'),
               ],
             ),
@@ -310,7 +465,13 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                     error: _error,
                     onReload: _load,
                   ),
-                  _ClientUpdatesTab(
+                  _ClientApprovalsTab(
+                    projects: _projects,
+                    loading: _loading,
+                    error: _error,
+                    onReload: _load,
+                  ),
+                  _ClientPaymentsTab(
                     projects: _projects,
                     loading: _loading,
                     error: _error,
@@ -422,8 +583,8 @@ class _ClientProjectsTab extends StatelessWidget {
   }
 }
 
-class _ClientUpdatesTab extends StatelessWidget {
-  const _ClientUpdatesTab({
+class _ClientApprovalsTab extends StatelessWidget {
+  const _ClientApprovalsTab({
     required this.projects,
     required this.loading,
     required this.error,
@@ -437,64 +598,110 @@ class _ClientUpdatesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.atelier;
     if (loading) return const Center(child: CircularProgressIndicator());
     if (error != null) {
       return StatusView.error(body: error!, onAction: onReload);
     }
     if (projects.isEmpty) {
       return const StatusView.empty(
-        title: 'لا تحديثات',
-        body: 'ستظهر آخر التحديثات والمعالم هنا.',
+        title: 'لا موافقات',
+        body: 'ستظهر طلبات الاعتماد هنا.',
       );
     }
     return IvorySheet(
-      child: ListView.separated(
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-        itemCount: projects.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, i) {
-          final p = projects[i];
-          final name = (p['title'] ?? p['name']) as String? ?? 'مشروع';
-          final status = p['status'] as String? ?? 'draft';
-          final progress = _clientProgressPercent(p, status);
-          final designStatus = p['design_status'] as String? ?? 'draft';
-          return LedgerCard(
-            row: LedgerRow(
-              id: p['id'] as int,
-              title: name,
-              subtitle: 'التقدم $progress% · ${_designStatusLabel(designStatus)}',
-              amount: _clientStatusLabel(status),
-              accent: designStatus == 'pending' ? c.teal : c.dateTint,
-              badge: designStatus == 'pending' ? 'اعتماد' : 'تحديث',
+        children: [
+          for (final p in projects) ...[
+            SectionLabel((p['title'] ?? p['name'] ?? 'مشروع').toString()),
+            IvoryMenuCard(
+              children: [
+                HubRow(
+                  title: 'اعتماد التصميم',
+                  subtitle: 'مراجعة ورفع أو رفض التصميم',
+                  icon: Icons.palette_outlined,
+                  onTap: () => context.push(
+                    '/client/projects/${p['id']}/design-approval',
+                  ),
+                ),
+                HubRow(
+                  title: 'اختيارات المواد',
+                  subtitle: 'اعتماد اختيارات التشطيبات',
+                  icon: Icons.checklist_outlined,
+                  onTap: () => context
+                      .push('/client/projects/${p['id']}/selections'),
+                ),
+                HubRow(
+                  title: 'أوامر التغيير',
+                  subtitle: 'مراجعة التعديلات الإضافية',
+                  icon: Icons.edit_note_outlined,
+                  onTap: () => context
+                      .push('/client/projects/${p['id']}/change-orders'),
+                ),
+              ],
             ),
-            onTap: () {
-              final id = p['id'] as int;
-              if (designStatus == 'pending') {
-                context.push('/client/projects/$id/design-approval');
-              } else {
-                context.push('/client/projects/$id');
-              }
-            },
-          );
-        },
+            const SizedBox(height: 16),
+          ],
+        ],
       ),
     );
   }
+}
 
-  String _designStatusLabel(String status) {
-    switch (status) {
-      case 'approved':
-        return 'تصميم معتمد';
-      case 'rejected':
-        return 'تصميم مرفوض';
-      case 'pending':
-        return 'بانتظار اعتماد التصميم';
-      case 'draft':
-        return 'التصميم قيد الإعداد';
-      default:
-        return 'التصميم قيد الإعداد';
+class _ClientPaymentsTab extends StatelessWidget {
+  const _ClientPaymentsTab({
+    required this.projects,
+    required this.loading,
+    required this.error,
+    required this.onReload,
+  });
+
+  final List<Map<String, dynamic>> projects;
+  final bool loading;
+  final String? error;
+  final VoidCallback onReload;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (error != null) {
+      return StatusView.error(body: error!, onAction: onReload);
     }
+    if (projects.isEmpty) {
+      return const StatusView.empty(
+        title: 'لا مدفوعات',
+        body: 'ستظهر خطة الدفع والأقساط هنا.',
+      );
+    }
+    return IvorySheet(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+        children: [
+          for (final p in projects) ...[
+            SectionLabel((p['title'] ?? p['name'] ?? 'مشروع').toString()),
+            IvoryMenuCard(
+              children: [
+                HubRow(
+                  title: 'خطة الدفع',
+                  subtitle: 'الأقساط والمدفوعات',
+                  icon: Icons.payments_outlined,
+                  onTap: () => context
+                      .push('/client/projects/${p['id']}/payments'),
+                ),
+                HubRow(
+                  title: 'الضمان',
+                  subtitle: 'بلاغات ما بعد التسليم',
+                  icon: Icons.verified_outlined,
+                  onTap: () => context
+                      .push('/client/projects/${p['id']}/warranty'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ],
+      ),
+    );
   }
 }
 

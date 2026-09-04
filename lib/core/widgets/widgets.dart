@@ -182,8 +182,16 @@ class AtelierButton extends StatelessWidget {
         ],
       ),
     );
-    if (expanded) return SizedBox(width: double.infinity, child: child);
-    return child;
+    if (!expanded) return child;
+    // Avoid `width: infinity` under unbounded parents (e.g. Row without Expanded).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth.isFinite) {
+          return SizedBox(width: constraints.maxWidth, child: child);
+        }
+        return child;
+      },
+    );
   }
 }
 

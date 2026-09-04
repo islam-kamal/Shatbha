@@ -15,16 +15,18 @@ class DeliveryMilestone {
   final String? targetDate;
   final String status;
 
-  factory DeliveryMilestone.fromJson(Map<String, dynamic> json) =>
-      DeliveryMilestone(
-        id: json['id'] as int,
-        projectId: json['project_id'] as int,
-        title: json['title'] as String,
-        targetDate: json['target_date'] != null
-            ? jsonDate(json['target_date'])
-            : null,
-        status: json['status'] as String? ?? 'pending',
-      );
+  factory DeliveryMilestone.fromJson(Map<String, dynamic> json) {
+    final isDone = json['is_done'] as bool? ?? false;
+    return DeliveryMilestone(
+      id: jsonInt(json['id']),
+      projectId: jsonInt(json['project_id']),
+      title: json['title'] as String? ?? '',
+      targetDate: json['target_date'] != null
+          ? jsonDate(json['target_date'])
+          : null,
+      status: json['status'] as String? ?? (isDone ? 'done' : 'pending'),
+    );
+  }
 }
 
 class SnagItem {
@@ -45,9 +47,9 @@ class SnagItem {
   final String? location;
 
   factory SnagItem.fromJson(Map<String, dynamic> json) => SnagItem(
-        id: json['id'] as int,
-        projectId: json['project_id'] as int,
-        title: json['title'] as String,
+        id: jsonInt(json['id']),
+        projectId: jsonInt(json['project_id']),
+        title: json['title'] as String? ?? '',
         description: json['description'] as String?,
         status: json['status'] as String? ?? 'open',
         location: json['location'] as String?,
@@ -71,9 +73,12 @@ class HandoverChecklistItem {
 
   factory HandoverChecklistItem.fromJson(Map<String, dynamic> json) =>
       HandoverChecklistItem(
-        id: json['id'] as int,
-        projectId: json['project_id'] as int,
-        label: json['label'] as String? ?? json['title'] as String? ?? '',
+        id: jsonInt(json['id']),
+        projectId: jsonInt(json['project_id']),
+        label: json['item'] as String? ??
+            json['label'] as String? ??
+            json['title'] as String? ??
+            '',
         isChecked: json['is_checked'] as bool? ?? false,
         notes: json['notes'] as String?,
       );
@@ -97,9 +102,12 @@ class SignOff {
   final String? notes;
 
   factory SignOff.fromJson(Map<String, dynamic> json) => SignOff(
-        id: json['id'] as int,
-        projectId: json['project_id'] as int,
-        partyName: json['party_name'] as String? ?? json['name'] as String? ?? '',
+        id: jsonInt(json['id']),
+        projectId: jsonInt(json['project_id']),
+        partyName: json['signed_by'] as String? ??
+            json['party_name'] as String? ??
+            json['name'] as String? ??
+            '',
         role: json['role'] as String?,
         signedAt: json['signed_at'] != null
             ? jsonDate(json['signed_at'])
@@ -119,12 +127,17 @@ class HandoverSummary {
   final String? completedAt;
   final String status;
 
+  bool get isComplete =>
+      status == 'handed_over' ||
+      status == 'completed' ||
+      status == 'done';
+
   factory HandoverSummary.fromJson(Map<String, dynamic> json) =>
       HandoverSummary(
-        projectId: json['project_id'] as int,
+        projectId: jsonInt(json['project_id'] ?? json['id']),
         completedAt: json['completed_at'] != null
             ? jsonDate(json['completed_at'])
-            : null,
+            : (json['updated_at'] != null ? jsonDate(json['updated_at']) : null),
         status: json['status'] as String? ?? 'pending',
       );
 }
