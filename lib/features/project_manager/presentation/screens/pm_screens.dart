@@ -163,7 +163,7 @@ class _TasksTab extends StatelessWidget {
     final title = TextEditingController();
     final assignee = TextEditingController();
     final due = TextEditingController(text: formatDate(DateTime.now()));
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('مهمة جديدة'),
@@ -329,7 +329,7 @@ class _BudgetTab extends StatelessWidget {
   Future<void> _showAddBudget(BuildContext context) async {
     final category = TextEditingController();
     final planned = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('بند ميزانية'),

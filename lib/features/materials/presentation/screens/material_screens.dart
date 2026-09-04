@@ -126,9 +126,10 @@ class _CatalogViewState extends State<_CatalogView> {
       }
       return;
     }
-    final project = await showModalBottomSheet<Project>(
+    final project = await showAtelierBottomSheet<Project>(
       context: context,
       builder: (ctx) => ListView(
+        shrinkWrap: true,
         children: [
           for (final p in projects)
             ListTile(
@@ -200,7 +201,7 @@ class _SupplierProductsManageScreenState
     final price = TextEditingController(text: product?.price ?? '');
     final unit = TextEditingController(text: product?.unit ?? '');
     final category = TextEditingController(text: product?.category ?? '');
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(product == null ? 'منتج جديد' : 'تعديل منتج'),

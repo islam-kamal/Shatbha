@@ -61,7 +61,7 @@ class _PartyDirectoryScreenState extends State<PartyDirectoryScreen> {
   }
 
   Future<void> _delete(Party party) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(_isCustomer ? 'حذف العميل' : 'حذف المقاول'),
@@ -93,7 +93,7 @@ class _PartyDirectoryScreenState extends State<PartyDirectoryScreen> {
 
   Future<void> _inviteClient(Party party) async {
     final email = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('دعوة ${party.name}'),
@@ -201,23 +201,28 @@ class _PartyDirectoryScreenState extends State<PartyDirectoryScreen> {
                               if (_isCustomer && p.kind == 'agreement')
                                 'اتفاق',
                             ].join(' · ');
-                            return Material(
-                              color: c.raised,
-                              borderRadius: BorderRadius.circular(12),
+                            return SheetCard(
                               child: ListTile(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
                                 leading: Icon(
                                   _isCustomer
                                       ? Icons.person_outline
                                       : Icons.engineering_outlined,
                                   color: c.brass,
                                 ),
-                                title: Text(p.name),
-                                subtitle:
-                                    subtitle.isEmpty ? null : Text(subtitle),
+                                title: Text(
+                                  p.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                subtitle: subtitle.isEmpty
+                                    ? null
+                                    : Text(subtitle),
                                 trailing: PopupMenuButton<String>(
+                                  icon: Icon(
+                                    Icons.more_vert,
+                                    color: c.stone.withValues(alpha: 0.55),
+                                  ),
                                   onSelected: (v) async {
                                     if (v == 'edit') {
                                       await _openForm(party: p);
@@ -426,6 +431,8 @@ class _PartyFormScreenState extends State<PartyFormScreen> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _kind,
+                style: TextStyle(color: context.atelier.stone),
+                dropdownColor: Colors.white,
                 items: const [
                   DropdownMenuItem(value: 'agreement', child: Text('اتفاق')),
                   DropdownMenuItem(value: 'supervision', child: Text('إشراف')),
@@ -450,7 +457,9 @@ class _PartyFormScreenState extends State<PartyFormScreen> {
                   'رقم ${_existing!.id}',
                   if (_existing!.hasLogin) 'لديه حساب دخول',
                 ].join(' · '),
-                style: TextStyle(color: context.atelier.ivoryMuted),
+                style: TextStyle(
+                  color: context.atelier.stone.withValues(alpha: 0.55),
+                ),
               ),
             ],
             const SizedBox(height: 24),

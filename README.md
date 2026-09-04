@@ -1,947 +1,380 @@
 # شطبها / Shatbha
 
-RTL ERP for Egyptian finishing and contracting SMEs. Arabic-first, four-tab shell, Atelier visual language.
+**أتيليه التشطيبات والمقاولات** — Arabic-first, RTL mobile ERP for Egyptian finishing and contracting SMEs.
 
-This repository is the **Flutter app**. The Laravel API lives in a separate repo: [islam-kamal/Shatbha-backend](https://github.com/islam-kamal/Shatbha-backend).
+This repository is the **Flutter app**. The Laravel API lives separately:
 
+| | |
+| --- | --- |
+| Flutter (this repo) | [islam-kamal/Shatbha](https://github.com/islam-kamal/Shatbha) |
+| Laravel API | [islam-kamal/Shatbha-backend](https://github.com/islam-kamal/Shatbha-backend) |
+| Hosted API | [https://p02--shatbha--9lqgqlp9drrc.code.run](https://p02--shatbha--9lqgqlp9drrc.code.run) |
+| Health | `GET /` → `{ "ok": true, "app": "shatbha", "api": "/api/v1" }` |
 
-|                     |                                                                                            |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| Flutter (this repo) | [islam-kamal/Shatbha](https://github.com/islam-kamal/Shatbha)                              |
-| Laravel API         | [islam-kamal/Shatbha-backend](https://github.com/islam-kamal/Shatbha-backend)              |
-| Hosted API          | [https://p02--shatbha--9lqgqlp9drrc.code.run](https://p02--shatbha--9lqgqlp9drrc.code.run) |
-| Health              | `GET /` → `{ "ok": true, "app": "shatbha", "api": "/api/v1" }`                             |
-| Laravel health      | `GET /up`                                                                                  |
-
+**Local run (emulator / USB / adb):** see **[RUN.md](RUN.md)**.
 
 ---
-
-
 
 ## Table of contents
 
-1. [What the product does](#what-the-product-does)
-2. [Project workflow (ecosystem)](#project-workflow-ecosystem)
-3. [Two data layers](#two-data-layers)
-4. [Demo users and seeded fixtures](#demo-users-and-seeded-fixtures)
-5. [Visual language](#visual-language)
-6. [Architecture](#architecture)
-7. [App start and authentication](#app-start-and-authentication)
-8. [Navigation map](#navigation-map)
-9. [Finishing pack — live API flows](#finishing-pack--live-api-flows)
-10. [Extra packs — in-app demo flows](#extra-packs--in-app-demo-flows)
-11. [Offline cache and outbox sync](#offline-cache-and-outbox-sync)
-12. [Roles and access](#roles-and-access)
-13. [Logging](#logging)
-14. [HTTP API](#http-api)
-15. **[How to run locally (emulator / USB / adb)](RUN.md)**
-16. [Quick start — run server and app](#quick-start--run-server-and-app)
-17. [Run the Laravel API (first-time setup)](#run-the-laravel-api-first-time-setup)
-18. [Run the Flutter app (flavors)](#run-the-flutter-app-flavors)
-19. [Deploy the API](#deploy-the-api)
-20. [Build and ship the Flutter app](#build-and-ship-the-flutter-app)
-21. [Project layout](#project-layout)
+1. [Product idea](#1-product-idea)
+2. [Who uses the app](#2-who-uses-the-app)
+3. [Core business concepts](#3-core-business-concepts)
+4. [Feature modules](#4-feature-modules)
+5. [End-to-end flows and scenarios](#5-end-to-end-flows-and-scenarios)
+6. [Business rules (important)](#6-business-rules-important)
+7. [Tech stack and architecture](#7-tech-stack-and-architecture)
+8. [Navigation map](#8-navigation-map)
+9. [Demo users](#9-demo-users)
+10. [Project layout](#10-project-layout)
+11. [Related docs](#11-related-docs)
 
 ---
 
+## 1. Product idea
 
+Finishing ateliers in Egypt typically juggle:
 
-## What the product does
+- Homeowners (عملاء) and their payments / supervision agreements
+- Contractors and suppliers (مقاولون / موردون)
+- Project design packages (moodboard, plans, BOQ) that need client sign-off
+- Site execution, materials, procurement, warehouse, and handover
+- Day-to-day cash journal, expenses, jobs, and reports
 
-Shatbha is a field-and-office ledger for a finishing atelier:
+**شطبها** unifies that into one Arabic RTL app with three sides of the same business:
 
-- Keep **customers** (اتفاق / إشراف) and **contractors**.
-- Record **customer journal** lines: cash collection, labor (مصنعية), goods, returns.
-- Track **office expenses** by category.
-- Track **contractor jobs**: qty × unit price, payments, remaining.
-- Print-style **statements**, **customer report**, **contractor remaining**, and **income statement** (P&L).
-- Work **offline**: reads fall back to SQLite (Drift); writes queue in an outbox and flush from المزيد.
+| Side | Who | Goal |
+| --- | --- | --- |
+| **Company** | Admin / clerk of the finishing office | Run CRM, ledger, projects, design, procurement, reports |
+| **Vendor** | Contractor or supplier with a login | Respond to quotes, manage portfolio/products, work on assigned projects |
+| **Client** | Homeowner linked to a customer party | Follow their projects, approve design, see handover docs |
 
-The finishing pack is wired to the API. Extra activity packs (manufacturing, food, aluminum, real estate, carpets, …) are **in-app demo screens** so the product can show those businesses without extra backend tables yet.
+One login screen tries company → vendor → client credentials in order, so each persona uses the same app binary with role-gated navigation.
 
----
-
-
-
-## Project workflow (ecosystem)
-
-End-to-end flow for a finishing project — from planning through handover:
-
-![Shatbha project workflow — design, contractors, materials, project manager, procurement, warehouse, delivery, handover](assets/docs/project-workflow.png)
-
-
-| Phase            | Modules                          | Examples                                                                                                            |
-| ---------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Planning**     | Design · Contractors · Materials | Inspiration, 3D ideas, floor plans · quotes, reviews, portfolio · products, prices, suppliers                       |
-| **Execution**    | Project manager                  | Tasks (progress, workers, photos) · budget (payments, expenses, invoices) · timeline (milestones, delays, schedule) |
-| **Supply chain** | Procurement → Warehouse          | Purchase orders · stock, delivery, transfer                                                                         |
-| **Close-out**    | Project → Delivery → Handover    | Site delivery, snag list, sign-off                                                                                  |
-
-
-Flutter features map to this diagram: `design/`, `contractors_marketplace/`, `materials/`, `project_manager/`, `procurement/`, `warehouse/`, `handover/`, plus core `projects/`.
+Visual language (“Atelier”): dark stone chrome, brass accents, cream **IvorySheet** content panels, Arabic typography (IBM Plex Sans Arabic / Cairo).
 
 ---
 
+## 2. Who uses the app
 
+### Company — admin / clerk
 
-## Two data layers
+- Full shell: **الرئيسية · دفتر · تقارير · المزيد**
+- Manages customers & contractors (parties), projects, design packages, quotes, materials, POs, warehouse, PM tasks, handover, journal, expenses, jobs, company profile
+- **Admin** can access income statement / P&L; **clerk** shares most company screens but not admin-only reports
+- Seeded examples: `admin@shatbha.test` / `clerk@shatbha.test` (password typically `password` in local seed)
 
+### Vendor — contractor / supplier
 
-| Kind                        | Storage                                                         | Survives restart                                             | Examples                                                                                                                                               |
-| --------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Live (finishing pack)**   | Laravel + Sanctum + company-scoped DB. Flutter caches in Drift. | Yes, on the server. Local cache until next successful fetch. | Login, company name/pack, customers, contractors, work types, expense categories, customer entries, expenses, jobs/payments, reports, P&L              |
-| **Demo (**`ExtraStore`**)** | In-memory `ChangeNotifier` in the app                           | No                                                           | Other revenues, supplier journal, items/inventory, production, cubing, units/installments, partners, checks, food/aluminum P&L, print/backup/search UI |
+- Shell: **الرئيسية · المزيد** (no company ledger/reports)
+- **Contractor:** quote inbox, respond to RFQs, vendor project workspace, portfolio
+- **Supplier:** product catalog management, profile
+- Account created by self-registration **or** when the company adds a contractor party with an email (credentials emailed)
 
+### Client — homeowner
 
-Writes that go through repositories (`JournalRepository`, `ExpenseRepository`, `JobRepository`, `CatalogRepository`) hit `POST /api/v1/...`. If the device is offline they still appear locally and land in `sync_outbox`.
-
----
-
-
-
-## Demo users and seeded fixtures
-
-
-| Email                | Password   | Role    | Arabic label                                           |
-| -------------------- | ---------- | ------- | ------------------------------------------------------ |
-| `admin@shatbha.test` | `password` | `admin` | مدير — all reports including P&L                       |
-| `clerk@shatbha.test` | `password` | `clerk` | كاتب — `GET /reports/income-statement` returns **403** |
-
-
-Login fields are prefilled with the admin account.
-
-**Seeded company:** شطبها · أتيليه التشطيبات والمقاولات · pack `finishing`.
-
-
-| Fixture              | Value     | How it is computed                                                     |
-| -------------------- | --------- | ---------------------------------------------------------------------- |
-| Contractor remaining | **7,000** | Job «محارة فيلا»: qty 100 × 200 = 20,000 − payment 13,000              |
-| P&L net              | **900**   | Supervision cash 1,000 (بدير) − office category «اشتراكات وفواتير» 100 |
-
-
-Other seed rows: customers خالد (اتفاق, estimate 50,000) and بدير (إشراف 8%); contractor أحمد; work types تأسيس سباكة / تأسيس نقاشة / أرضيات; expense categories اشتراكات وفواتير and إكراميات وبدلات; sample cash and labor entries on خالد.
-
-Seeding is **idempotent**: if `admin@shatbha.test` already exists, the seeder returns without duplicating data.
+- Client home with projects / updates / documents
+- Sees only projects linked to their **customer party**
+- Approves or rejects submitted design packages; can open attachments (images/PDF)
+- Participates in project requests; can sign handover where enabled
+- Account created when the company adds/invites a **customer** with email
 
 ---
 
+## 3. Core business concepts
 
+### Party vs login account
 
-## Visual language
+| Concept | Meaning |
+| --- | --- |
+| **Party (`parties`)** | CRM record: `customer` or `contractor` under a `company_id` (name, phone, kind, balances…) |
+| **ClientAccount** | Login for a homeowner, linked to a customer party (`party_id`) |
+| **VendorAccount** | Login for a contractor/supplier; company-created contractors also link via `party_id` |
 
-**Atelier** — dark stone chrome with ivory sheets and brass accents.
+Creating a party with an **email** provisions the matching login and emails a temporary password. The party list shows email + “حساب دخول” when a login exists.
 
+### Customer kinds
 
-| Token      | Hex       | Role                               |
-| ---------- | --------- | ---------------------------------- |
-| Stone      | `#1C1814` | App chrome, text on ivory          |
-| Raised     | `#2A241E` | Cards on dark backgrounds          |
-| Ivory      | `#F6F1E8` | Sheets, lists, print preview       |
-| Brass      | `#C4A574` | Brand, KPIs, selected tabs         |
-| Terracotta | `#B85C38` | Expenses, danger, negative amounts |
-| Teal       | `#4A7C74` | Cash / positive amounts            |
+- **اتفاق (agreement)** — classic finishing agreement customer
+- **إشراف (supervision)** — supervision % on collections (used in statements / supervision screens)
 
+### Project
 
-Fonts: **IBM Plex Sans Arabic** (UI numbers and body), **Cairo** (wordmark), **Cinzel** (English lockup / VERSION). Locale is `ar` with RTL Material localizations. Bottom navigation order (right → left): **الرئيسية · دفتر · تقارير · المزيد**. Overlay add/pay screens hide the bar (`parentNavigatorKey` root routes).
+A finishing job site owned by the company, optionally linked to a **customer** (`customer_id`). Linking a customer (who has a client login) is what makes the project appear in the client app and allows design submission / notifications to that client.
 
----
-
-
-
-## Architecture
-
-Feature-first: `core` **is shared**, each feature owns its **data**, **injection**, and **presentation**.
+### Design package lifecycle
 
 ```
-lib/
-  core/          env, Dio, Drift DB, failures, logging, theme, widgets, router
-  features/
-    auth/
-      data/           datasources / models / repositories
-      injection.dart  GetIt registrations for this feature
-      presentation/
-        cubit/        cubit (or bloc) + matching state file
-        screens/
-    catalog/  journal/  expenses/  jobs/  reports/  company/  extra/  sync/  shell/
-    projects/  vendors/  materials/  contractors_marketplace/  design/
-    project_manager/  procurement/  warehouse/  handover/  media/
+draft → pending (submitted to client) → approved | rejected
 ```
 
-`core/di/injection.dart` registers storage, Dio, and the database, then calls each feature’s `registerX(sl)`.
+Company builds inspiration + plans + BOQ, then **إرسال للعميل**. Client reviews and approves or rejects with a reason. Rejection returns the package to editable company workflow for resubmit.
 
-**Cubit and state files**
+### Collaboration
 
-Every feature cubit is two files (auth is a Bloc, so it also has events). The cubit/bloc file **exports** its state so screens keep importing one path.
+- **Project members** — company users, vendors, and/or client account on the project
+- **Project requests** — structured asks (e.g. design approval, vendor responses) with comments and approve/reject
+
+### Marketplace quotes
+
+Company requests a quote from a marketplace contractor for a project; contractor responds; company accepts or rejects. Accepted work can feed contractor jobs / project linkage.
+
+---
+
+## 4. Feature modules
+
+| Module | What it does |
+| --- | --- |
+| **Auth** | Splash, unified login, token restore (`/me`, `/client/me`), logout, role-aware redirects |
+| **Shell** | Bottom nav, home grids per role, ledger hub, reports hub, more menu, date range for reports |
+| **Catalog / parties** | Clients & contractors CRM (list/add/edit/delete), work types, expense categories; login provisioning on create |
+| **Journal / ledger** | Customer journal entries, statements, pickers; hub also reaches supplier/general journals (atelier extras) |
+| **Projects** | List/create/detail; customer required on create; hub to design, team, requests, materials, PM, procurement, warehouse, handover |
+| **Design** | Moodboard/inspiration by room, plans (image/PDF), BOQ; submit to client; plan-level review comments |
+| **Client workspace** | Client projects, design approval UI, attachment view/download, client-side requests |
+| **Contractors marketplace** | Browse contractors, request quote, quote list/detail/respond/accept/reject |
+| **Vendors** | Vendor directory & profiles; contractor/supplier portfolio or products (vendor-managed) |
+| **Materials** | Supplier catalog, project material lines, generate PO from materials |
+| **Procurement** | Purchase orders: create, approve, receive goods |
+| **Warehouse** | Warehouses, stock levels, issue to project, transfers |
+| **Project manager** | Tasks, milestones, timeline, budget lines |
+| **Handover** | Delivery milestones, snags, checklists, sign-offs; client sign-off; mark handed over |
+| **Notifications** | In-app inbox, unread badge, FCM + local notifications, deep links |
+| **Reports** | Customers, contractors, expenses, sales, suppliers, inventory, partners, installments, P&L |
+| **Expenses / jobs** | Office expenses by category; contractor jobs and payments |
+| **Company** | Company profile settings |
+| **Media** | Upload, attach picker, fullscreen image viewer, PDF download/open |
+| **Sync** | Drift SQLite cache + **outbox** for offline writes (flush from المزيد) |
+| **Extra packs** | Demo/atelier screens: production, units/installments, partners, checks, packs, backup, search, print, etc. |
+
+---
+
+## 5. End-to-end flows and scenarios
+
+### Scenario A — Onboard a client who can log in
+
+1. Company → **العملاء** → **عميل جديد**.
+2. Enter name + **email** (required) + optional phone / kind (اتفاق أو إشراف).
+3. Backend creates `Party` + `ClientAccount`, generates a temporary password, sends **Party credentials** email.
+4. App shows success including temporary password and whether the email was sent (`credentials_emailed`).
+5. Client installs the app, logs in with that email/password (login falls through to `/client/login`).
+6. Until a project is linked to that customer, the client may see an empty project list.
+
+**Local note:** with `MAIL_MAILER=log`, “email” is written to Laravel’s log, not Gmail. The API still returns the temporary password in the response for testing.
+
+### Scenario B — Onboard a contractor who can log in
+
+1. Company → **المقاولون** → **مقاول جديد**.
+2. Same as clients: email required → `VendorAccount` (type contractor) + credentials email.
+3. Contractor logs in via the same login screen (`/vendor/login`).
+4. They can open quotes, portfolio, and vendor project workspace when assigned.
+
+### Scenario C — Create a project for a client
+
+1. Company → **المشاريع** → **مشروع جديد**.
+2. Pick an existing **customer** (required), title, address, budget, area, description.
+3. API creates the project and syncs **project membership** for the creator and the customer’s client account (if any).
+4. Project detail becomes the hub for design, team, requests, materials, PM, procurement, warehouse, handover.
+
+### Scenario D — Design package → client approval
+
+1. Open project → **التصميم**.
+2. **لوحة الإلهام:** set style/notes; add inspiration items per room (images/PDF).
+3. **مخططات:** add floor/elevation/etc. plans with media; optional internal submit/approve.
+4. **BOQ:** add lines (manually or from inspiration); totals drive client summary.
+5. Company taps **إرسال للعميل** when ready.
+   - Requires: project has `customer_id` and that customer has an **active ClientAccount**.
+   - Status → `pending`; client is notified (in-app / FCM when configured).
+6. Client home shows “تصميم بانتظار اعتمادك” → **اعتماد التصميم**.
+7. Client reviews style, inspiration, plans (view/download attachments), BOQ → **اعتماد** or **رفض مع ملاحظة**.
+8. Company sees approved/rejected banner; on reject, edit and resubmit.
+
+### Scenario E — Marketplace quote
+
+1. Company → contractors marketplace (or contractor profile) → **طلب عرض سعر**.
+2. Select project + description → quote request created for that vendor.
+3. Contractor → **العروض** → respond with pricing/notes.
+4. Company accepts or rejects. Accepted quotes can drive further job/project linkage.
+
+### Scenario F — Team and project requests
+
+1. Project → **الفريق**: add company/vendor members; invite client if needed.
+2. Project → **الطلبات**: create a request (e.g. approval / vendor action).
+3. Vendor comments / submits response; company or client approve/reject with comments as allowed by role APIs.
+4. Notifications keep each side in sync.
+
+### Scenario G — Materials → PO → warehouse → site
+
+1. Add materials to the project from supplier catalog.
+2. Generate / create **purchase order** → approve → **receive** goods.
+3. Warehouse: stock, issue to project, transfers.
+4. PM tracks tasks/milestones; handover tracks snags/checklist/sign-off until **تسليم**.
+
+### Scenario H — Ledger day-to-day (company)
+
+1. **دفتر:** customer journal (تحصيل، مصنعية، بضاعة…), statements, supervision fees where kind is إشراف.
+2. **مصروفات** and **أعمال المقاولين** for office spend and contractor agreements/payments.
+3. **تقارير** for customers, contractors, expenses, sales, inventory, P&L (admin).
+
+### Scenario I — Notifications
+
+1. On login, app registers FCM device token with the API.
+2. Events (design submitted/approved/rejected, quotes, requests, etc.) create notification rows and optional push.
+3. User opens **التنبيهات**, marks read, follows deep link (`route` in payload).
+
+### Scenario J — Offline / sync
+
+1. Reads can fall back to Drift SQLite cache when the API is unreachable.
+2. Some writes enqueue to an **outbox** and replay when online (**المزيد → مزامنة الصندوق الصادر**).
+3. This is opportunistic offline support, not a full offline-first ERP.
+
+---
+
+## 6. Business rules (important)
+
+1. **Email on party create** — Creating a customer or contractor without email fails validation when a login is required.
+2. **Design submit requires a client login** — Project must have `customer_id` pointing to a party with an active `ClientAccount`; otherwise the API returns a clear Arabic 422.
+3. **Client only sees their projects** — Scoped by `customer_id` ↔ client’s `party_id`.
+4. **Role redirects** — Vendors/clients cannot open company-only routes (`/journal`, `/clients`, full `/projects` admin tree, etc.); company users are kept off `/client/*` and vendor-only surfaces except where shared (e.g. notifications).
+5. **Temporary passwords** — Returned once in API responses and emailed; treat them as secrets in production.
+6. **Design status gates editing** — While `pending`, company edit may be locked; after `rejected`, company can revise and resubmit.
+7. **Company isolation** — Parties and projects are scoped by `company_id`.
+
+---
+
+## 7. Tech stack and architecture
+
+### Flutter app
+
+- Flutter 3.7+ / Dart, Arabic `Locale('ar')`
+- **BLoC / Cubit** for auth and features
+- **GoRouter** for shell + deep links + auth redirects
+- **Dio** → `https://…/api/v1` (or local `http://127.0.0.1:8000`)
+- **Drift** SQLite — cache + sync outbox
+- **get_it** DI, **flutter_secure_storage** for Sanctum tokens
+- **Firebase Messaging** + local notifications
+- Media: image_picker, file_picker, url_launcher, open_filex
+- Flavors: `main.dart` / `main_local.dart` / `main_production.dart`
+
+### Laravel API
+
+- Laravel + **Sanctum** (company `User`, `VendorAccount`, `ClientAccount`)
+- REST under `/api/v1`
+- Mail for party credentials; FCM via Firebase Admin when configured
+- Multi-tenant by `company_id`
+
+### Layering (per feature)
 
 ```
-presentation/cubit/
-  foo_cubit.dart   # Cubit class; `export 'foo_state.dart'`
-  foo_state.dart    # State class
+presentation/  → screens, cubits
+data/          → repositories, remote datasources, models
+injection.dart → get_it registration
 ```
 
-
-| Feature | Files                                                  | Types                                       |
-| ------- | ------------------------------------------------------ | ------------------------------------------- |
-| auth    | `auth_bloc.dart`, `auth_event.dart`, `auth_state.dart` | `AuthBloc` / `AuthEvent` / `AuthState`      |
-| catalog | `catalog_cubit.dart`, `catalog_state.dart`             | `DefinitionsCubit` / `DefinitionsState`     |
-| journal | `journal_cubit.dart`, `journal_state.dart`             | `JournalCubit` / `JournalState`             |
-| shell   | `date_range_cubit.dart`, `date_range_state.dart`       | `DateRangeCubit` / `DateRange`              |
-| sync    | `sync_cubit.dart`, `sync_state.dart`                   | `SyncCubit` / `SyncState` (`pending` count) |
-
-
-`expenses`, `jobs`, `reports`, `company`, and `extra` have screens only — they call repositories (or `ExtraStore`) from the widget.
-
-`shell` is presentation-only (tabs + date range). `extra` stores demo data in `ExtraStore` (in-memory). Jobs and journal import `Party` from `catalog`.
-
-**How to find code**
-
-
-| I want to…                     | Open                                                                           |
-| ------------------------------ | ------------------------------------------------------------------------------ |
-| Change a screen                | `lib/features/<feature>/presentation/screens/`                                 |
-| Change cubit logic             | `lib/features/<feature>/presentation/cubit/*_cubit.dart` (auth: `*_bloc.dart`) |
-| Change cubit state             | `lib/features/<feature>/presentation/cubit/*_state.dart`                       |
-| Change auth events             | `lib/features/auth/presentation/cubit/auth_event.dart`                         |
-| Change API parsing             | `lib/features/<feature>/data/datasources/`                                     |
-| Change a model                 | `lib/features/<feature>/data/models/`                                          |
-| Change cache / offline enqueue | `lib/features/<feature>/data/repositories/`                                    |
-| Register a new class           | `lib/features/<feature>/injection.dart`                                        |
-| Shared button / KPI / overlay  | `lib/core/widgets/`                                                            |
-| Local tables                   | `lib/core/database/app_database.dart`                                          |
-
-
-**Stack**
-
-
-| Layer    | Choice                                                                       |
-| -------- | ---------------------------------------------------------------------------- |
-| UI       | Flutter, Material 3, `go_router` 4-tab `StatefulShellRoute`                  |
-| State    | `flutter_bloc` + `equatable`                                                 |
-| DI       | `get_it` — root `setupDependencies()` + per-feature `injection.dart`         |
-| HTTP     | Dio, base URL `${API_BASE_URL}/api/v1`, Bearer from `flutter_secure_storage` |
-| Local DB | Drift (`lib/core/database`) shared by feature repositories                   |
-| Logging  | `logger` via `AppLog`                                                        |
-
-
-Failures: `OfflineFailure`, `UnauthorizedFailure`, `ForbiddenFailure`, `ServerFailure`, `ValidationFailure`. Dio maps to these in `mapDio`.
+Core shared: `lib/core` (routing, theme, network, database, widgets, DI).
 
 ---
 
+## 8. Navigation map
 
+### Bottom shell (company)
 
-## App start and authentication
+| Tab | Route | Purpose |
+| --- | --- | --- |
+| الرئيسية | `/home` | Shortcuts to projects, clients, design, procurement, … |
+| دفتر | `/ledger` | Journal / statements hub |
+| تقارير | `/reports` | Report hub |
+| المزيد | `/more` | Settings, sync, notifications, extras |
+
+### Important company routes
+
+- `/clients`, `/clients/add`, `/clients/:id/edit`
+- `/contractors`, `/contractors/add`, `/contractors/marketplace`
+- `/projects`, `/projects/add`, `/projects/:id`
+- `/projects/:id/design`, `/projects/:id/team`, `/projects/:id/requests`
+- `/projects/:id/pm`, `/projects/:id/procurement`, `/projects/:id/warehouse`, `/projects/:id/handover`
+- `/quotes`, `/notifications`, `/company`
+
+### Client
+
+- `/client/projects`, `/client/projects/:id`
+- `/client/projects/:id/design-approval`
+- `/client/projects/:id/requests`
+- `/notifications`
+
+### Vendor
+
+- `/quotes`, `/quotes/:id`, `/quotes/:id/respond`
+- `/vendor/projects`, `/vendor/products`, `/vendor/portfolio`
+- `/notifications`
+
+---
+
+## 9. Demo users
+
+Typical local seeds (confirm in backend seeder):
+
+| Email | Role |
+| --- | --- |
+| `admin@shatbha.test` | Company admin |
+| `clerk@shatbha.test` | Company clerk |
+| `client@shatbha.test` | Client (if seeded) |
+| Vendor emails from seeder / provisioned contractors | Contractor or supplier |
+
+Password for seeded accounts is usually `password` unless changed.
+
+---
+
+## 10. Project layout
 
 ```
-main()
-  → error hooks + Bloc observer
-  → initializeDateFormatting('ar')
-  → setupDependencies()   // Drift, Dio, repos
-  → ShatbhaApp
-       AuthBloc + DateRangeCubit + SyncCubit
-       GoRouter (refreshListenable = AuthBloc)
+code/                          ← Flutter app (this repo)
+├── lib/
+│   ├── main.dart / main_local.dart / main_production.dart
+│   ├── app.dart               # MaterialApp.router, locale ar
+│   ├── bootstrap.dart
+│   ├── core/
+│   │   ├── config/            # API flavors
+│   │   ├── database/          # Drift
+│   │   ├── di/
+│   │   ├── network/
+│   │   ├── routing/           # app_router.dart
+│   │   ├── theme/
+│   │   └── widgets/
+│   └── features/              # auth, shell, catalog, projects, design, client, …
+├── assets/brand/
+├── RUN.md                     # Local Android / adb / Laravel serve
+└── pubspec.yaml
 
-Splash  --AuthStarted-->  restore token from secure storage
-                            │
-                            ├─ GET /me succeeds → /home
-                            ├─ /me fails, cache exists → /home (cached user)
-                            └─ no token → /login
+Shatbha-backend/               ← sibling Laravel API (separate clone)
+├── routes/api.php
+├── app/Http/Controllers/Api/
+├── app/Services/              # PartyLoginProvisioner, NotificationService, FcmPushService, …
+└── resources/views/emails/
 ```
 
-**Login:** `POST /api/v1/login` `{ email, password }` → Sanctum token stored as key `token`. User + company cached in Drift. Router redirect: guest cannot leave `/login`; authenticated users bouncing on `/login` or `/splash` go to `/home`.
+---
 
-**Logout:** المزيد → تسجيل الخروج → `POST /logout` (best-effort) then delete token → `/login`.
+## 11. Related docs
 
-**Session restore while offline:** if `/me` fails but a user row exists in `users_cache`, the app still opens as that user.
-
-**Company update:** `PUT /company` with `name` / `subtitle` / `pack`. `AuthCompanyUpdated` refreshes `AuthAuthenticated` without a full re-login.
+- **[RUN.md](RUN.md)** — Start Laravel on `127.0.0.1:8000`, `adb reverse`, FVM Flutter flavors, emulator/USB checklist
+- Backend README (in `Shatbha-backend`) — migrations, seeders, env (`MAIL_*`, `FIREBASE_CREDENTIALS`), deploy notes
 
 ---
 
-
-
-## Navigation map
-
-
-
-### Shell (bottom bar)
-
-
-| Tab      | Route      | Screen                             |
-| -------- | ---------- | ---------------------------------- |
-| الرئيسية | `/home`    | 8 tiles into finishing + reports   |
-| دفتر     | `/ledger`  | Ledger hub (live + extra journals) |
-| تقارير   | `/reports` | Date-range chip + report list      |
-| المزيد   | `/more`    | Ops, definitions, system, logout   |
-
-
-
-
-### Home tiles
-
-
-| Tile            | Route                  |
-| --------------- | ---------------------- |
-| يومية العملاء   | `/journal`             |
-| التعريفات       | `/definitions`         |
-| مصاريف إدارية   | `/expenses`            |
-| كشف حساب عميل   | `/customers/picker`    |
-| اتفاق مقاولين   | `/jobs`                |
-| تقرير العملاء   | `/reports/customers`   |
-| قائمة الدخل     | `/pnl`                 |
-| تقرير المقاولين | `/reports/contractors` |
-
-
-
-
-### Date range
-
-`DateRangeCubit` is global. تقارير shows a chip; picking **من تاريخ** then **إلى تاريخ** filters journal KPIs and P&L query params (`from` / `to` ISO dates).
-
----
-
-
-
-## Finishing pack — live API flows
-
-These screens read and write the Laravel API (with Drift fallback).
-
-### 1. Definitions — `/definitions`
-
-Four tabs: **عملاء · مقاولون · أعمال · بنود**.
-
-
-| Action                           | Flow                                                                                                                        |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| List                             | `GET /customers`, `/contractors`, `/work-types`, `/expense-categories`                                                      |
-| Add customer                     | `/definitions/add-customer` → name, phone, kind **اتفاق** (`agreement`) or **إشراف** (`supervision` + %). `POST /customers` |
-| Add contractor                   | `/definitions/add-contractor` → name, phone. `POST /contractors`                                                            |
-| Add work type / expense category | Prompt dialog → `POST /work-types` or `POST /expense-categories`                                                            |
-
-
-App-bar shortcuts: الأصناف (`/items`, demo) and إضافة مورد (`/definitions/add-supplier`, demo).
-
-**Party types on the API:** `customer` | `contractor` only. Suppliers are not API parties.
-
-### 2. Customer journal — `/journal`
-
-Loads `GET /customer-entries` with optional `from`, `to`, `customer_id`.
-
-KPIs: cash total, labor total, returns.
-
-**Add entry** `/journal/add`:
-
-1. Pick customer.
-2. Type: تحصيل `cash` · مصنعية `labor` · خامات `goods` · مرتجع `return`.
-3. Title, amount, date.
-4. `POST /customer-entries`. Labor sends `labor_amount`; others send `amount`.
-5. Success overlay, then pop.
-
-Offline: enqueue `POST /customer-entries` and keep a local row with a timestamp id.
-
-Empty state: «لا توجد حركات» with قيد جديد.
-
-### 3. Customer statement — picker → `/customers/:id/statement`
-
-1. الرئيسية → كشف حساب عميل → list.
-2. Supervision customers show subtitle «عميل إشراف».
-3. Statement: opening, sales (amount + labor), collect (cash), returns, closing.
-4. Closing formula (API): `opening + sales − collect − returns`.
-5. **إضافة قيد** from the statement goes to `/journal/add`.
-
-**Supervision** `/customers/:id/supervision`: fee = cash collected × `supervision_percent / 100`. Seeded بدير is 8%.
-
-### 4. Expenses — `/expenses`
-
-`GET /expenses` → list + period total. Add `/expenses/add`: category, title, amount, date → `POST /expenses`. Offline enqueue same as journal.
-
-**Expense report** `/reports/expenses`: `GET /reports/expenses` grouped by category.
-
-### 5. Contractor jobs — `/jobs`
-
-`GET /jobs` with `total`, `paid`, `remaining`. KPI is sum of remaining (seeded **7,000**).
-
-**Add job** `/jobs/add`: contractor, title, qty, unit price → `POST /jobs`. Total = qty × unit_price.
-
-**Pay** `/jobs/:id/pay`: amount + date → `POST /jobs/:id/payments`. API rejects amount > remaining (422).
-
-**Contractor report** `/reports/contractors`: remaining per contractor.
-
-### 6. Customer report — `/reports/customers`
-
-Per customer: opening, sales, collect, closing. Tap a row → that customer’s statement.
-
-### 7. Income statement (P&L) — `/pnl`
-
-`GET /reports/income-statement?from=&to=` — **admin only**.
-
-
-| Line                 | Source                                              |
-| -------------------- | --------------------------------------------------- |
-| تحصيل نسب إشراف      | Cash entries whose customer `kind` is `supervision` |
-| إجمالي مصاريف مكتبية | Expenses whose category name is `اشتراكات وفواتير`  |
-| صافي                 | supervision − office                                |
-
-
-Clerk sees a forbidden state (403 mapped to `ForbiddenFailure`). Print icon opens the demo print preview (`/print`).
-
-### 8. Company — `/company`
-
-Loads `GET /company`. Saves Arabic name + English subtitle via `PUT /company`. Phones/addresses/logo are UI-only until the API grows those fields.
-
-### 9. Activity pack — `/packs`
-
-Choose: finishing, manufacturing, food, wood, aluminum, realestate, carpets. Persist `pack` on the company. Does not hide/show routes yet; extra screens stay reachable from دفتر / تقارير / المزيد.
-
----
-
-
-
-## Extra packs — in-app demo flows
-
-Unless noted, data is `ExtraStore` or hardcoded. Adds update memory until the process is killed.
-
-### Ledger hub (`/ledger`)
-
-
-| Row            | Route                | Notes                                                           |
-| -------------- | -------------------- | --------------------------------------------------------------- |
-| يومية العملاء  | `/journal`           | **Live**                                                        |
-| مصاريف إدارية  | `/expenses`          | **Live**                                                        |
-| إيرادات أخرى   | `/revenues`          | Seed: بيع خردة ألوميتال 2,500. Add `/revenues/add`              |
-| يومية الموردين | `/suppliers/journal` | شراء / سداد / مرتجع. Add `/suppliers/journal/add`               |
-| يومية مجمعة    | `/general-journal`   | Combined demo journal; «قيد جديد» opens **live** `/journal/add` |
-| اتفاق مقاولين  | `/jobs`              | **Live**                                                        |
-| تقرير العهد    | `/petty-cash`        | Fixed KPIs 5,000 / 3,200 / 1,800, progress for عهدة موقع فيلا   |
-| سحب خامات      | `/inventory/out`     | Add `/inventory/out/add`                                        |
-| تسجيل إنتاج    | `/production`        | Add `/production/add`                                           |
-| يومية الشركاء  | `/partners/journal`  | Add `/partners/journal/add`                                     |
-| أعمال مقاولات  | `/contracting`       | Demo projects → `/cubing`; «مشروع جديد» is **live** `/jobs/add` |
-
-
-
-
-### Reports hub (beyond live P&L / customers / contractors / expenses)
-
-
-| Report             | Route                   | Demo content                                 |
-| ------------------ | ----------------------- | -------------------------------------------- |
-| تقرير المبيعات     | `/reports/sales`        | Invoices, totals                             |
-| تقرير الموردين     | `/reports/suppliers`    | Supplier balances                            |
-| تقرير المخزون      | `/reports/inventory`    | Same as `/inventory` — items from ExtraStore |
-| الميزانية العمومية | `/balance-sheet`        | Assets / equity layout                       |
-| تقرير الشركاء      | `/reports/partners`     | 60/40 split, capital 2,000,000               |
-| تقرير الأقساط      | `/reports/installments` | Due / collected / late; tap → collect        |
-
-
-
-
-### Cubing / BOQ — `/cubing`
-
-Lines: نقاشة، جبس، ألوميتال، كهرباء. KPIs 420 م² and 50,000. PDF opens `/print`. Add line `/cubing/add` (no persist).
-
-### Items — `/items`
-
-ExtraStore SKUs (تام + خامة ألوميتال). Add `/items/add`. Work types list `/work-types` can also create **live** work types via catalog.
-
-### Real estate — `/units`
-
-Units 101-ب, 102-ب, 201-ج with progress bars. Detail `/units/:code` → تحصيل قسط `/units/:code/collect` (cash vs other, success overlay).
-
-### Partners — `/partners`, `/partners/agreement`
-
-Agreement pie 60/40, save overlay. Journal as above.
-
-### Manufacturing / food / aluminum
-
-
-| Screen                 | Route                              |
-| ---------------------- | ---------------------------------- |
-| عملاء التصنيع          | `/manufacturing/customers`         |
-| قائمة الدخل — غذائي    | `/pnl/food` (net 99,000)           |
-| قائمة الدخل — ألوميتال | `/pnl/aluminum` (ALU MAS, net 900) |
-
-
-
-
-### Operations (المزيد)
-
-
-| Screen                | Route           | Behavior                                                                     |
-| --------------------- | --------------- | ---------------------------------------------------------------------------- |
-| بحث                   | `/search`       | Filters demo hits (customers / agreements / installments)                    |
-| طباعة                 | `/print`        | Preview P&L 1,000 − 100 = 900; Print / PDF / Excel overlays                  |
-| مزامنة الصندوق الصادر | —               | **Live** `SyncCubit.flush()` — see [Offline](#offline-cache-and-outbox-sync) |
-| نسخ احتياطي           | `/backup`       | Simulated backup/restore; restore does not wipe Drift                        |
-| شيكات                 | `/checks`       | Demo cheque register                                                         |
-| الأصول الثابتة        | `/fixed-assets` | Cost / depreciation / net                                                    |
-
-
----
-
-
-
-## Offline cache and outbox sync
-
-On network/API failure, repositories:
-
-1. **Read:** return Drift cache (parties, entries, expenses, jobs, company, user).
-2. **Write (create entry / expense / job):** insert a local row **and** `enqueue(method, path, json body)` into `sync_outbox` (`status = pending`).
-
-**Flush:** المزيد → مزامنة الصندوق الصادر.
-
-- Subtitle shows pending count (`SyncCubit`).
-- Replay each pending row with the original method/path/body via Dio.
-- Success → `synced`. Failure → `failed` (logged; not retried until another flush).
-- SnackBar: «لا شيء للمزامنة» or «تم رفع N قيد».
-
-Paths replayed today: `/customer-entries`, `/expenses`, `/jobs` (and payments if queued). Token is attached like any other request.
-
----
-
-
-
-## Roles and access
-
-
-| Capability                                               | admin | clerk                        |
-| -------------------------------------------------------- | ----- | ---------------------------- |
-| Login, journals, expenses, jobs, statements, definitions | Yes   | Yes                          |
-| Customer / contractor / expense reports                  | Yes   | Yes                          |
-| Income statement API + `/pnl`                            | Yes   | **403** — UI forbidden state |
-
-
-Sanctum: all routes except `POST /login` and `GET /db-status` require `Authorization: Bearer`. Company id is taken from the authenticated user; there is no cross-company access.
-
----
-
-
-
-## Logging
-
-Package `logger` via `lib/core/logging/app_log.dart`.
-
-
-| Mode    | Level                                |
-| ------- | ------------------------------------ |
-| Debug   | trace and up, pretty printer, emojis |
-| Release | warning and up                       |
-
-
-
-| Tag                                          | What                                                                                               |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `http`                                       | Method, URI, status, duration; headers/body **redacted** (`password`, `token`, `Authorization`, …) |
-| `bloc`                                       | create, event, change, transition, error, close                                                    |
-| `nav`                                        | push/pop/replace, go_router redirects                                                              |
-| `auth` / `sync` / `journal` / `projects` / … | Domain                                                                                             |
-| `flutter`                                    | `FlutterError`, `PlatformDispatcher`, `ErrorWidget`                                                |
-
-
-`AuthLoginRequested.toString()` omits the password. Never log the Sanctum token.
-
----
-
-
-
-## HTTP API
-
-Base path: `{API_BASE_URL}/api/v1`. JSON `Accept: application/json`.
-
-### Public
-
-
-| Method | Path                           | Notes                                        |
-| ------ | ------------------------------ | -------------------------------------------- |
-| POST   | `/login`                       | Body `email`, `password` → `{ token, user }` |
-| GET    | `/db-status`                   | Ops / DB probe                               |
-| GET    | `/` (web, not under `/api/v1`) | `{ ok, app, api }`                           |
-| GET    | `/up`                          | Laravel health                               |
-
-
-
-
-### Authenticated
-
-
-| Method                    | Path                                             |
-| ------------------------- | ------------------------------------------------ |
-| POST                      | `/logout`                                        |
-| GET                       | `/me`                                            |
-| GET / PUT                 | `/company`                                       |
-| GET / POST                | `/customers`, `/contractors`                     |
-| GET / POST / PUT / DELETE | `/parties`                                       |
-| GET / POST                | `/work-types`, `/expense-categories`             |
-| GET / POST                | `/customer-entries`                              |
-| GET                       | `/customers/{id}/statement`                      |
-| GET / POST                | `/expenses`                                      |
-| GET                       | `/reports/expenses`                              |
-| GET / POST                | `/jobs`                                          |
-| POST                      | `/jobs/{id}/payments`                            |
-| GET                       | `/reports/customers`                             |
-| GET                       | `/reports/contractors`                           |
-| GET                       | `/reports/income-statement` (`admin` middleware) |
-
-
-Query dates: `from`, `to` as `YYYY-MM-DD`.
-
-### Ecosystem (marketplace + project lifecycle)
-
-Public vendor auth:
-
-
-| Method | Path               | Notes                                                          |
-| ------ | ------------------ | -------------------------------------------------------------- |
-| POST   | `/vendor/register` | `{ type, name, email, password, phone?, bio?, service_area? }` |
-| POST   | `/vendor/login`    | `{ email, password }` → Sanctum token (vendor ability)         |
-
-
-Seeded marketplace vendors (password `password`):
-
-
-| Email                    | Type       |
-| ------------------------ | ---------- |
-| `contractor@market.test` | contractor |
-| `supplier@market.test`   | supplier   |
-
-
-Authenticated ecosystem routes (company user unless noted):
-
-
-| Area            | Paths                                                                                               |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| Projects        | `GET/POST /projects`, `GET/PUT /projects/{id}`                                                      |
-| Vendors         | `GET /vendors`, `GET /vendors/{id}`                                                                 |
-| Media           | `POST /media` (multipart upload)                                                                    |
-| Materials       | `GET /products`, vendor `GET/POST/PUT/DELETE /vendor/products`, `GET/POST /projects/{id}/materials` |
-| Quotes          | `GET/POST /quotes`, `POST /quotes/{id}/respond` (vendor), `POST /quotes/{id}/accept                 |
-| Reviews         | `GET/POST /projects/{id}/reviews`                                                                   |
-| Design          | `GET/POST /projects/{id}/design/boards`, inspiration, floor-plans, boq                              |
-| Project manager | `GET/POST /projects/{id}/pm/tasks`, milestones, timeline, budget                                    |
-| Procurement     | `GET/POST /purchase-orders`, `POST /purchase-orders/{id}/receive`                                   |
-| Warehouse       | `GET/POST /warehouses`, stock, movements, project delivery-notes                                    |
-| Handover        | `GET/POST /projects/{id}/handover/*`, `POST /projects/{id}/handover/complete`                       |
-
-
-Flutter features: `projects/`, `vendors/`, `materials/`, `contractors_marketplace/`, `design/`, `project_manager/`, `procurement/`, `warehouse/`, `handover/`, `media/`. Home hub tiles: المشاريع · التصميم · المقاولون · المواد plus finance (journal, expenses, jobs, P&L). Project detail links to all sub-modules.
-
----
-
-
-
-## Quick start — run server and app
-
-**Full step-by-step (emulator, USB phone, `adb reverse`, troubleshooting):** see **[RUN.md](RUN.md)**.
-
-Use **local** flavor for daily work on your machine. Use **production** flavor to hit the hosted Northflank API (no local server needed).
-
-### Local development (two terminals)
-
-**Terminal 1 — Laravel API** (keep running):
+## Quick start (summary)
 
 ```bash
-cd Shatbha-backend          # clone once — see [first-time setup](#run-the-laravel-api-first-time-setup)
-php artisan serve --host=127.0.0.1 --port=8000
-```
-
-Verify:
-
-```bash
-curl -s http://127.0.0.1:8000/up
-curl -s -X POST http://127.0.0.1:8000/api/v1/login \
-  -H 'Accept: application/json' \
-  -d 'email=admin@shatbha.test&password=password'
-```
-
-**Terminal 2 — Flutter app** (from this repo):
-
-```bash
-fvm flutter pub get
-```
-
-
-| Target | Commands |
-|---|---|
-| **Android emulator** | `./scripts/run_local_android.sh` (runs `adb reverse`; **do not** pass a LAN IP) |
-| **Android phone (USB)** | `./scripts/run_local_android.sh` |
-| **Android (manual)** | `adb reverse tcp:8000 tcp:8000` then `fvm flutter run --flavor local -t lib/main_local.dart` |
-| **iOS Simulator / macOS / desktop / web** | `fvm flutter run -t lib/main_local.dart` |
-
-
-**Cursor / VS Code:** Run and Debug → **Shatbha · local** (runs `adb reverse` automatically via `.vscode/tasks.json`).
-
-On boot you should see:
-
-```
-flavor=local API_BASE_URL=http://127.0.0.1:8000
-```
-
-Log in with `admin@shatbha.test` / `password` (prefilled on the login screen).
-
-#### Why `adb reverse` on Android?
-
-A physical phone’s or emulator’s `127.0.0.1` is the device itself, not your Mac. This command forwards the device’s port 8000 to your Mac’s Laravel:
-
-```bash
-adb reverse tcp:8000 tcp:8000
-```
-
-Use `-d` only when a **USB phone** is connected and you want to skip the emulator. Use `-e` to target the emulator. Re-run after reconnecting the device.
-
-If login fails with **Connection refused** or **connectionTimeout**, Laravel is not running, you ran `artisan` from the Flutter repo (run it from `Shatbha-backend`), or `adb reverse` was not applied.
-
-#### Wi‑Fi only (no USB, physical phone)
-
-Do **not** use this for the Android emulator — use `adb reverse` and `http://127.0.0.1:8000` instead.
-
-On your Mac, from **Shatbha-backend** (not this Flutter repo):
-
-```bash
+# Terminal 1 — API
 cd ../Shatbha-backend
-php artisan serve --host=0.0.0.0 --port=8000
-ipconfig getifaddr en0    # your real LAN IP, e.g. 192.168.1.23
-```
-
-On the app, substitute **your** IP (the `192.168.91.70` figure in older docs was an example and is ignored):
-
-```bash
-fvm flutter run --flavor local -t lib/main_local.dart \
-  --dart-define=API_BASE_URL=http://192.168.1.23:8000
-```
-
-
-
-### Production (hosted API — no local server)
-
-Point the app at Northflank. Laravel on your Mac is **not** required.
-
-```bash
-fvm flutter run --flavor production -t lib/main_production.dart
-```
-
-Same demo users work against the hosted API (vendor accounts need `EcosystemSeeder` on the server — see backend README).
-
-### Test accounts
-
-
-| Email                    | Password   | Use                                              |
-| ------------------------ | ---------- | ------------------------------------------------ |
-| `admin@shatbha.test`     | `password` | Company admin — projects, journal, reports       |
-| `clerk@shatbha.test`     | `password` | Company clerk — no P&L                           |
-| `contractor@market.test` | `password` | Vendor contractor — quotes, not company projects |
-| `supplier@market.test`   | `password` | Vendor supplier — products catalog               |
-
-
-Vendor logins use a different home screen (no company `/projects`).
-
-### Troubleshooting
-
-
-| Symptom                           | Fix                                                                                                       |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `connectionTimeout` / `192.168.91.70` | Emulator: drop the dart-define; run Laravel from `Shatbha-backend` and `adb reverse tcp:8000 tcp:8000` |
-| `Could not open input file: artisan` | You are in the Flutter repo. `cd ../Shatbha-backend` then `php artisan serve --host=127.0.0.1 --port=8000` |
-| `Failed host lookup: 192.168.x.x` | Remove `--dart-define=API_BASE_URL=...` ; that was a README placeholder |
-| `Connection refused` on Android | Run `adb reverse tcp:8000 tcp:8000`; keep Laravel on `127.0.0.1:8000` |
-| Boot shows wrong API URL          | **Full restart** (not hot reload) after changing flavor or dart-define                                    |
-| `403` on `/projects` as vendor    | Expected — use company admin or vendor home (quotes / products)                                           |
-| Drift build errors                | `fvm dart run build_runner build --delete-conflicting-outputs`                                            |
-
-
----
-
-
-
-## Run the Laravel API (first-time setup)
-
-Clone [Shatbha-backend](https://github.com/islam-kamal/Shatbha-backend). PHP 8.2+ (Docker image uses **8.4**) and Composer.
-
-**SQLite (default)**
-
-```bash
-cd Shatbha-backend
-composer install
-touch database/database.sqlite
-cp .env.example .env
-php artisan key:generate
-php artisan migrate:fresh --seed
-php artisan db:seed --class=EcosystemSeeder   # vendor demo accounts
 php artisan serve --host=127.0.0.1 --port=8000
+
+# Terminal 2 — Android device tunnel
+adb reverse tcp:8000 tcp:8000
+
+# Terminal 3 — App
+cd ../code
+fvm flutter run --flavor local -t lib/main_local.dart
 ```
 
-API root: `http://127.0.0.1:8000/api/v1`.
-
-**Optional MySQL** (`docker-compose.yml` in the backend repo):
-
-```bash
-docker compose up -d mysql
-# .env: DB_CONNECTION=mysql, DB_DATABASE=shatbha, DB_USERNAME=shatbha, DB_PASSWORD=secret
-php artisan migrate:fresh --seed
-php artisan db:seed --class=EcosystemSeeder
-```
-
-Tests: `php artisan test`.
-
----
-
-
-
-## Run the Flutter app (flavors)
-
-Requires [FVM](https://fvm.app) or a matching Flutter SDK. Generated Drift file: `lib/core/database/app_database.g.dart`.
-
-```bash
-fvm flutter pub get
-# only if app_database.g.dart is missing or tables changed:
-fvm dart run build_runner build --delete-conflicting-outputs
-```
-
-
-| Flavor         | Entry point                | API                                           |
-| -------------- | -------------------------- | --------------------------------------------- |
-| **local**      | `lib/main_local.dart`      | `http://127.0.0.1:8000`                       |
-| **production** | `lib/main_production.dart` | `https://p02--shatbha--9lqgqlp9drrc.code.run` |
-
-
-Config lives in `lib/core/config/app_flavor.dart`. Optional override: `--dart-define=API_BASE_URL=...` (full restart required).
-
-**Android** installs side-by-side flavors:
-
-
-| Flavor     | Application ID              | Label         |
-| ---------- | --------------------------- | ------------- |
-| local      | `com.shatbha.shatbha.local` | شطبها · Local |
-| production | `com.shatbha.shatbha`       | شطبها         |
-
-
-**Scripts**
-
-
-| Script                         | Purpose                                      |
-| ------------------------------ | -------------------------------------------- |
-| `scripts/adb_reverse.sh`       | Forward phone `:8000` → Mac `:8000`          |
-| `scripts/run_local_android.sh` | `adb reverse` + `flutter run --flavor local` |
-
-
-**Release builds** (production only):
-
-```bash
-fvm flutter build apk --release --flavor production -t lib/main_production.dart
-fvm flutter build appbundle --release --flavor production -t lib/main_production.dart
-```
-
-Analyze: `fvm flutter analyze lib`.
-
----
-
-
-
-## Deploy the API
-
-The Flutter app does not deploy a server. Point `API_BASE_URL` at whatever host serves Laravel.
-
-### Current: Northflank + Neon Postgres
-
-Hosted URL above. Pattern:
-
-1. Push `Shatbha-backend` to GitHub.
-2. [Northflank Sandbox](https://app.northflank.com) → Combined service → Dockerfile `./Dockerfile`.
-3. Public HTTP **port 80**.
-4. Environment:
-
-```
-APP_ENV=production
-APP_DEBUG=false
-APP_KEY=base64:…          # php artisan key:generate --show
-APP_URL=https://YOUR-SERVICE.code.run
-LOG_CHANNEL=stderr
-DB_CONNECTION=pgsql
-DATABASE_URL=postgresql://USER:PASS@HOST/neondb?sslmode=require
-DB_URL=${DATABASE_URL}
-SESSION_DRIVER=database
-CACHE_STORE=database
-QUEUE_CONNECTION=sync
-```
-
-Use Neon’s **direct** URI (not the pooler) if migrations hang. After first deploy, set `APP_URL` to the `*.code.run` URL and redeploy.
-
-Container start (`scripts/00-laravel-deploy.sh`): write `.env`, `migrate --force`, `db:seed --force` (no-op if admin exists), then Apache.
-
-Neon may sleep when idle; the first request after that can take ~30s.
-
-### Render (blueprint)
-
-`render.yaml` at the **backend repo root**: Docker web service + Postgres. Health `/up`. Set `APP_KEY` in the dashboard. Free web sleeps after idle; free Postgres expires on a timer — upgrade for production.
-
-### Docker locally
-
-From the backend repo:
-
-```bash
-docker build -t shatbha-api .
-docker run --rm -p 8080:80 \
-  -e APP_KEY=base64:… \
-  -e APP_URL=http://127.0.0.1:8080 \
-  -e DATABASE_URL=postgresql://… \
-  shatbha-api
-```
-
-Then `--dart-define=API_BASE_URL=http://127.0.0.1:8080`.
-
----
-
-
-
-## Build and ship the Flutter app
-
-Use the **production** flavor for store builds:
-
-```bash
-fvm flutter build apk --release --flavor production -t lib/main_production.dart
-
-fvm flutter build ios --release -t lib/main_production.dart
-
-fvm flutter build macos --release -t lib/main_production.dart
-
-fvm flutter build web --release -t lib/main_production.dart
-```
-
-Do not ship the **local** flavor (`com.shatbha.shatbha.local` on Android).
-
-iOS/macOS: `flutter_secure_storage` does not yet support Swift Package Manager; that is a plugin warning, not an app bug.
-
----
-
-
-
-## Project layout
-
-```
-lib/
-  main.dart                    default → production
-  main_local.dart              local flavor entry
-  main_production.dart         production flavor entry
-  bootstrap.dart               shared startup
-  app.dart                     AuthBloc + DateRangeCubit + SyncCubit
-  core/
-    config/app_flavor.dart     local vs production API URLs
-    config/env.dart
-    database/app_database.dart
-    di/injection.dart          storage, Dio, DB, then registerAuth, …
-    error/  logging/  network/  utils/
-    theme/  widgets/  routing/  observers/
-  features/
-    auth/
-      data/datasources|models|repositories
-      injection.dart
-      presentation/
-        cubit/                auth_bloc + auth_event + auth_state
-        screens/
-    catalog/                  catalog_cubit + catalog_state
-    journal/                  journal_cubit + journal_state
-    expenses/  jobs/  reports/ company/   screens + data, no cubit
-    extra/                    ExtraStore + screens + widgets/kit
-    sync/                     sync_cubit + sync_state
-    shell/                    date_range_cubit + date_range_state
-```
-
-Backend (other repo): Laravel 12, Sanctum, `apiPrefix` `api/v1`, `EnsureAdmin` on income statement, Docker PHP 8.4 + Apache, deploy script + Neon/`DATABASE_URL`.
+Full detail, troubleshooting, and production notes: **[RUN.md](RUN.md)**.

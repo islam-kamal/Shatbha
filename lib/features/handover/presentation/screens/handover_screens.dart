@@ -217,7 +217,7 @@ class _SnagTab extends StatelessWidget {
   Future<void> _addSnag(BuildContext context) async {
     final title = TextEditingController();
     final location = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('عيب جديد'),
@@ -375,7 +375,7 @@ class _SignOffTab extends StatelessWidget {
     final name = TextEditingController();
     final role = TextEditingController();
     final signature = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('توقيع'),

@@ -293,10 +293,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(_customerName ?? 'اختر العميل *',style: TextStyle(color: Colors.black),),
+              title: Text(_customerName ?? 'اختر العميل *'),
               subtitle: _customerId == null
-                  ? const Text('مطلوب لربط حساب العميل',style: TextStyle(color: Colors.black),)
-                  : Text('#$_customerId',style: TextStyle(color: Colors.black),),
+                  ? const Text('مطلوب لربط حساب العميل')
+                  : Text('#$_customerId'),
               trailing: const Icon(Icons.chevron_left),
               onTap: _pickCustomer,
             ),

@@ -36,29 +36,16 @@ class MediaPickField extends StatelessWidget {
   final String hint;
 
   Future<void> _openSheet(BuildContext context) async {
-    final choice = await showModalBottomSheet<_PickKind>(
+    final choice = await showAtelierBottomSheet<_PickKind>(
       context: context,
-      backgroundColor: context.atelier.ivory,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) {
         final c = ctx.atelier;
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: c.brass.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Text(
                   'اختر نوع المرفق',
                   style: TextStyle(
@@ -67,19 +54,25 @@ class MediaPickField extends StatelessWidget {
                     color: c.stone,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 ListTile(
                   leading: Icon(Icons.photo_library_outlined, color: c.brass),
-                  title:  Text('صور',style: TextStyle(color: c.stone,),),
-                  subtitle: const Text('اختيار عدة صور'),
+                  title: Text('صور', style: TextStyle(color: c.stone)),
+                  subtitle: Text(
+                    'اختيار عدة صور',
+                    style: TextStyle(color: c.stone.withValues(alpha: 0.6)),
+                  ),
                   onTap: () => Navigator.pop(ctx, _PickKind.images),
                 ),
                 ListTile(
-                  leading: Icon(Icons.picture_as_pdf_outlined, color: c.terracotta),
-                  title:  Text('PDF',style: TextStyle(color: c.stone,),),
-                  subtitle: const Text('ملف واحد'),
+                  leading:
+                      Icon(Icons.picture_as_pdf_outlined, color: c.terracotta),
+                  title: Text('PDF', style: TextStyle(color: c.stone)),
+                  subtitle: Text(
+                    'ملف واحد',
+                    style: TextStyle(color: c.stone.withValues(alpha: 0.6)),
+                  ),
                   onTap: () => Navigator.pop(ctx, _PickKind.pdf),
-
                 ),
               ],
             ),

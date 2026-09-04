@@ -547,7 +547,7 @@ class _SupervisionScreenState extends State<SupervisionScreen> {
                   const SizedBox(height: 24),
                   Text(
                     'تحسب أتعاب الإشراف كنسبة من التحصيل النقدي للعميل.',
-                    style: TextStyle(color: c.ivoryMuted),
+                    style: TextStyle(color: c.stone.withValues(alpha: 0.6)),
                   ),
                 ],
               ),

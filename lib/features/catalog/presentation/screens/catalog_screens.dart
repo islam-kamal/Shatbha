@@ -235,7 +235,7 @@ Future<void> _promptName(
   ValueChanged<String> onSave,
 ) async {
   final controller = TextEditingController();
-  final ok = await showDialog<bool>(
+  final ok = await showAtelierDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(label),
@@ -317,6 +317,8 @@ class _AddPartyScreenState extends State<AddPartyScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _kind,
+              style: TextStyle(color: context.atelier.stone),
+              dropdownColor: Colors.white,
               items: const [
                 DropdownMenuItem(value: 'agreement', child: Text('اتفاق')),
                 DropdownMenuItem(value: 'supervision', child: Text('إشراف')),

@@ -291,7 +291,7 @@ class _VendorPortfolioManageScreenState extends State<VendorPortfolioManageScree
     final title = TextEditingController();
     final workType = TextEditingController();
     final description = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('إضافة عمل'),

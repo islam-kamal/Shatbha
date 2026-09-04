@@ -60,11 +60,7 @@ class _InboxView extends StatelessWidget {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, i) {
                   final n = state.items[i];
-                  return Material(
-                    color: n.isRead
-                        ? c.raised
-                        : c.teal.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
+                  return SheetCard(
                     child: ListTile(
                       title: Text(
                         n.title,
@@ -74,6 +70,9 @@ class _InboxView extends StatelessWidget {
                         ),
                       ),
                       subtitle: Text(n.body),
+                      tileColor: n.isRead
+                          ? null
+                          : c.teal.withValues(alpha: 0.06),
                       trailing: n.isRead
                           ? null
                           : Icon(Icons.circle, size: 10, color: c.teal),

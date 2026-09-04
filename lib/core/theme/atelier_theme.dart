@@ -109,43 +109,43 @@ class AtelierColors extends ThemeExtension<AtelierColors> {
   }
 }
 
-TextTheme _atelierText(Color ivory, Color muted) {
+TextTheme _atelierText(Color primary, Color muted) {
   final plex = GoogleFonts.ibmPlexSansArabicTextTheme();
   return plex.copyWith(
     displayLarge: GoogleFonts.cairo(
       fontSize: 48,
       fontWeight: FontWeight.w800,
-      color: ivory,
+      color: primary,
       height: 1.1,
     ),
     headlineMedium: GoogleFonts.ibmPlexSansArabic(
       fontSize: 22,
       fontWeight: FontWeight.w700,
-      color: ivory,
+      color: primary,
       height: 1.35,
     ),
     titleLarge: GoogleFonts.ibmPlexSansArabic(
       fontSize: 18,
       fontWeight: FontWeight.w700,
-      color: ivory,
+      color: primary,
       height: 1.4,
     ),
     titleMedium: GoogleFonts.ibmPlexSansArabic(
       fontSize: 16,
       fontWeight: FontWeight.w600,
-      color: ivory,
+      color: primary,
       height: 1.45,
     ),
     bodyLarge: GoogleFonts.ibmPlexSansArabic(
       fontSize: 16,
       fontWeight: FontWeight.w500,
-      color: ivory,
+      color: primary,
       height: 1.5,
     ),
     bodyMedium: GoogleFonts.ibmPlexSansArabic(
       fontSize: 14,
       fontWeight: FontWeight.w400,
-      color: ivory,
+      color: primary,
       height: 1.5,
     ),
     bodySmall: GoogleFonts.ibmPlexSansArabic(
@@ -157,8 +157,140 @@ TextTheme _atelierText(Color ivory, Color muted) {
     labelLarge: GoogleFonts.ibmPlexSansArabic(
       fontSize: 16,
       fontWeight: FontWeight.w700,
-      color: ivory,
+      color: primary,
     ),
+  );
+}
+
+/// Light-surface theme for [IvorySheet], bottom sheets, and light dialogs.
+ThemeData buildAtelierIvoryTheme([ThemeData? base]) {
+  const c = AtelierColors.atelier;
+  final root = base ?? ThemeData(brightness: Brightness.light, useMaterial3: true);
+  return root.copyWith(
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: c.ivory,
+    canvasColor: c.ivory,
+    colorScheme: ColorScheme.light(
+      surface: c.ivory,
+      primary: c.brass,
+      secondary: c.teal,
+      error: c.terracotta,
+      onPrimary: c.stone,
+      onSurface: c.stone,
+      onSurfaceVariant: c.stone.withValues(alpha: 0.7),
+      outline: c.brass.withValues(alpha: 0.45),
+      surfaceContainerHighest: Colors.white,
+    ),
+    textTheme: _atelierText(c.stone, c.stone.withValues(alpha: 0.55)),
+    primaryTextTheme: _atelierText(c.stone, c.stone.withValues(alpha: 0.55)),
+    iconTheme: const IconThemeData(color: Color(0xFF1C1814)),
+    primaryIconTheme: const IconThemeData(color: Color(0xFFC4A574)),
+    listTileTheme: ListTileThemeData(
+      textColor: c.stone,
+      iconColor: c.brass,
+      subtitleTextStyle: TextStyle(
+        color: c.stone.withValues(alpha: 0.62),
+        fontSize: 13,
+      ),
+    ),
+    expansionTileTheme: ExpansionTileThemeData(
+      textColor: c.stone,
+      iconColor: c.brass,
+      collapsedTextColor: c.stone,
+      collapsedIconColor: c.stone.withValues(alpha: 0.7),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: Colors.white,
+      textStyle: TextStyle(color: c.stone, fontSize: 14),
+      labelTextStyle: WidgetStatePropertyAll(
+        TextStyle(color: c.stone, fontSize: 14),
+      ),
+    ),
+    dropdownMenuTheme: DropdownMenuThemeData(
+      textStyle: TextStyle(color: c.stone, fontSize: 14),
+      menuStyle: const MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(Colors.white),
+      ),
+    ),
+    menuTheme: const MenuThemeData(
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(Colors.white),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: Colors.white,
+      selectedColor: c.brass.withValues(alpha: 0.4),
+      disabledColor: c.ivoryMuted,
+      labelStyle: TextStyle(color: c.stone, fontWeight: FontWeight.w600),
+      secondaryLabelStyle: TextStyle(color: c.stone),
+      checkmarkColor: c.stone,
+      side: BorderSide(color: c.brass.withValues(alpha: 0.45)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    cardTheme: CardThemeData(
+      color: Colors.white,
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.brass.withValues(alpha: 0.28)),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      titleTextStyle: GoogleFonts.ibmPlexSansArabic(
+        color: c.stone,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+      ),
+      contentTextStyle: GoogleFonts.ibmPlexSansArabic(
+        color: c.stone.withValues(alpha: 0.85),
+        fontSize: 14,
+        height: 1.45,
+      ),
+      iconColor: c.brass,
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: c.ivory,
+      modalBackgroundColor: c.ivory,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+    ),
+    dividerColor: c.stone.withValues(alpha: 0.12),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      hintStyle: TextStyle(color: c.stone.withValues(alpha: 0.45)),
+      labelStyle: GoogleFonts.ibmPlexSansArabic(
+        color: c.stone.withValues(alpha: 0.8),
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+      ),
+      floatingLabelStyle: GoogleFonts.ibmPlexSansArabic(
+        color: c.brass,
+        fontWeight: FontWeight.w600,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: c.brass.withValues(alpha: 0.45)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: c.brass.withValues(alpha: 0.45)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFC4A574), width: 1.4),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: c.brass),
+    ),
+    extensions: const [c],
   );
 }
 
@@ -211,7 +343,7 @@ ThemeData buildAtelierTheme() {
     ),
     tabBarTheme: TabBarThemeData(
       indicatorColor: colors.brass,
-      labelColor: colors.stone,
+      labelColor: colors.brass,
       unselectedLabelColor: colors.ivoryMuted,
       indicatorSize: TabBarIndicatorSize.tab,
       dividerColor: Colors.transparent,
@@ -223,6 +355,17 @@ ThemeData buildAtelierTheme() {
         fontWeight: FontWeight.w500,
         fontSize: 13,
       ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: colors.raised,
+      selectedColor: colors.brass.withValues(alpha: 0.45),
+      labelStyle: GoogleFonts.ibmPlexSansArabic(
+        color: colors.ivory,
+        fontWeight: FontWeight.w600,
+      ),
+      secondaryLabelStyle: GoogleFonts.ibmPlexSansArabic(color: colors.ivory),
+      checkmarkColor: colors.stone,
+      side: BorderSide(color: colors.brass.withValues(alpha: 0.45)),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -254,10 +397,31 @@ ThemeData buildAtelierTheme() {
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: colors.raised,
+      surfaceTintColor: Colors.transparent,
       titleTextStyle: GoogleFonts.ibmPlexSansArabic(
         color: colors.ivory,
         fontSize: 18,
         fontWeight: FontWeight.w700,
+      ),
+      contentTextStyle: GoogleFonts.ibmPlexSansArabic(
+        color: colors.ivoryMuted,
+        fontSize: 14,
+        height: 1.45,
+      ),
+      iconColor: colors.brass,
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: colors.ivory,
+      modalBackgroundColor: colors.ivory,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+    ),
+    dropdownMenuTheme: DropdownMenuThemeData(
+      textStyle: TextStyle(color: colors.ivory),
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(colors.raised),
       ),
     ),
     extensions: const [colors],
@@ -267,4 +431,49 @@ ThemeData buildAtelierTheme() {
 extension AtelierContext on BuildContext {
   AtelierColors get atelier =>
       Theme.of(this).extension<AtelierColors>() ?? AtelierColors.atelier;
+}
+
+/// Bottom sheet with light ivory surface + readable stone text (app-wide).
+Future<T?> showAtelierBottomSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool isScrollControlled = false,
+  bool showDragHandle = true,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: isScrollControlled,
+    backgroundColor: AtelierColors.atelier.ivory,
+    showDragHandle: showDragHandle,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) => Theme(
+      data: buildAtelierIvoryTheme(Theme.of(context)),
+      child: DefaultTextStyle.merge(
+        style: TextStyle(
+          color: AtelierColors.atelier.stone,
+          fontSize: 14,
+          height: 1.45,
+        ),
+        child: builder(ctx),
+      ),
+    ),
+  );
+}
+
+/// Alert dialog with light surface (readable on every screen).
+Future<T?> showAtelierDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+}) {
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: barrierDismissible,
+    builder: (ctx) => Theme(
+      data: buildAtelierIvoryTheme(Theme.of(context)),
+      child: builder(ctx),
+    ),
+  );
 }

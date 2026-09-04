@@ -189,6 +189,8 @@ class _InspirationTab extends StatelessWidget {
                   Expanded(
                     child:                     DropdownButtonFormField<String?>(
                       value: board?.style,
+                      style: TextStyle(color: c.stone),
+                      dropdownColor: Colors.white,
                       decoration: const InputDecoration(labelText: 'الأسلوب'),
                       items: [
                         const DropdownMenuItem<String?>(
@@ -423,7 +425,7 @@ Future<void> _editDesignerNotes(
   String? current,
 ) async {
   final controller = TextEditingController(text: current ?? '');
-  final ok = await showDialog<bool>(
+  final ok = await showAtelierDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('ملاحظات المصمم'),
@@ -600,10 +602,12 @@ class _BoqTab extends StatelessWidget {
 Future<void> _pickInspirationForBoq(BuildContext context, int projectId) async {
   final cubit = context.read<DesignCubit>();
   final items = cubit.state.inspiration;
-  final picked = await showModalBottomSheet<InspirationItem>(
+  final picked = await showAtelierBottomSheet<InspirationItem>(
     context: context,
+    isScrollControlled: true,
     builder: (ctx) => SafeArea(
       child: ListView(
+        shrinkWrap: true,
         children: [
           const ListTile(title: Text('اختر عنصر إلهام')),
           ...items.map(
@@ -1008,6 +1012,8 @@ class _AddMoodBoardItemScreenState extends State<AddMoodBoardItemScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _room,
+              style: TextStyle(color: context.atelier.stone),
+              dropdownColor: Colors.white,
               decoration: const InputDecoration(labelText: 'الغرفة'),
               items: kDesignRooms
                   .map(
@@ -1022,12 +1028,14 @@ class _AddMoodBoardItemScreenState extends State<AddMoodBoardItemScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _category,
+              style: TextStyle(color: context.atelier.stone),
+              dropdownColor: Colors.white,
               decoration: const InputDecoration(labelText: 'التصنيف'),
               items: kInspirationCategories
                   .map(
-                    (c) => DropdownMenuItem(
-                      value: c,
-                      child: Text(kCategoryLabels[c] ?? c),
+                    (cat) => DropdownMenuItem(
+                      value: cat,
+                      child: Text(kCategoryLabels[cat] ?? cat),
                     ),
                   )
                   .toList(),
@@ -1129,6 +1137,8 @@ class _AddFloorPlanScreenState extends State<AddFloorPlanScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _type,
+              style: TextStyle(color: context.atelier.stone),
+              dropdownColor: Colors.white,
               decoration: const InputDecoration(labelText: 'النوع'),
               items: kPlanTypes
                   .map(
@@ -1143,6 +1153,8 @@ class _AddFloorPlanScreenState extends State<AddFloorPlanScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String?>(
               value: _room,
+              style: TextStyle(color: context.atelier.stone),
+              dropdownColor: Colors.white,
               decoration: const InputDecoration(labelText: 'الغرفة (اختياري)'),
               items: [
                 const DropdownMenuItem<String?>(value: null, child: Text('—')),

@@ -200,7 +200,7 @@ class _ClientDesignApprovalView extends StatelessWidget {
 
   Future<void> _reject(BuildContext context) async {
     final reasonCtrl = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('رفض التصميم'),

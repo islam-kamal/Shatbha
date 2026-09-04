@@ -229,22 +229,27 @@ class _KpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.atelier;
     final tinted = item.tint != null;
-    final bg = item.tint ?? c.raised;
-    final labelColor = tinted ? c.stone.withValues(alpha: 0.72) : c.ivoryMuted;
-    final valueColor = tinted ? c.stone : c.brassBright;
+    final onLight = Theme.of(context).brightness == Brightness.light;
+    final bg = item.tint ?? (onLight ? Colors.white : c.raised);
+    final labelColor = tinted || onLight
+        ? c.stone.withValues(alpha: 0.72)
+        : c.ivoryMuted;
+    final valueColor = tinted || onLight ? c.stone : c.brassBright;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(14),
-        border: tinted
-            ? null
-            : Border.all(color: c.brass.withValues(alpha: 0.35)),
+        border: Border.all(color: c.brass.withValues(alpha: 0.35)),
       ),
       child: Column(
         children: [
           if (item.icon != null) ...[
-            Icon(item.icon, size: 18, color: tinted ? c.stone : c.brass),
+            Icon(
+              item.icon,
+              size: 18,
+              color: tinted || onLight ? c.stone : c.brass,
+            ),
             const SizedBox(height: 6),
           ],
           Text(
@@ -307,10 +312,14 @@ class LedgerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.atelier;
     return Material(
-      color: c.ivory,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.brass.withValues(alpha: 0.28)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -559,6 +568,10 @@ class StatusView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
+    final onLight = Theme.of(context).brightness == Brightness.light;
+    final titleColor = onLight ? c.stone : c.brass;
+    final bodyColor =
+        onLight ? c.stone.withValues(alpha: 0.62) : c.ivoryMuted;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -579,7 +592,7 @@ class StatusView extends StatelessWidget {
               title,
               style: Theme.of(
                 context,
-              ).textTheme.headlineMedium?.copyWith(color: c.brass),
+              ).textTheme.headlineMedium?.copyWith(color: titleColor),
             ),
             const SizedBox(height: 8),
             const BrassDiamond(),
@@ -588,7 +601,7 @@ class StatusView extends StatelessWidget {
               body,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: c.ivoryMuted,
+                color: bodyColor,
                 height: 1.6,
               ),
             ),
@@ -647,72 +660,8 @@ class IvorySheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
-    final base = Theme.of(context);
-    // App theme uses ivory text on stone. This sheet is ivory, so flip
-    // on-surface / body text to stone or content disappears.
-    final ivoryTheme = base.copyWith(
-      brightness: Brightness.light,
-      colorScheme: ColorScheme.light(
-        surface: c.ivory,
-        primary: c.brass,
-        secondary: c.teal,
-        error: c.terracotta,
-        onPrimary: c.stone,
-        onSurface: c.stone,
-        outline: c.brass.withValues(alpha: 0.45),
-      ),
-      textTheme: base.textTheme.apply(
-        bodyColor: c.stone,
-        displayColor: c.stone,
-      ),
-      primaryTextTheme: base.primaryTextTheme.apply(
-        bodyColor: c.stone,
-        displayColor: c.stone,
-      ),
-      iconTheme: IconThemeData(color: c.stone),
-      listTileTheme: ListTileThemeData(
-        textColor: c.stone,
-        iconColor: c.stone.withValues(alpha: 0.7),
-        subtitleTextStyle: TextStyle(
-          color: c.stone.withValues(alpha: 0.6),
-          fontSize: 13,
-        ),
-      ),
-      expansionTileTheme: ExpansionTileThemeData(
-        textColor: c.stone,
-        iconColor: c.brass,
-        collapsedTextColor: c.stone,
-        collapsedIconColor: c.stone.withValues(alpha: 0.7),
-      ),
-      dividerColor: c.stone.withValues(alpha: 0.12),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.72),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        hintStyle: TextStyle(color: c.stone.withValues(alpha: 0.45)),
-        labelStyle: TextStyle(
-          color: c.stone.withValues(alpha: 0.8),
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: c.brass.withValues(alpha: 0.45)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: c.brass.withValues(alpha: 0.45)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: c.brass, width: 1.4),
-        ),
-      ),
-    );
-    // Material (not DecoratedBox) so ListTile / ExpansionTile ink splash
-    // paint onto a proper Material ancestor in debug mode.
-    return Material(
+    final ivoryTheme = buildAtelierIvoryTheme(Theme.of(context));
+    final sheet = Material(
       color: c.ivory,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       clipBehavior: Clip.antiAlias,
@@ -721,6 +670,61 @@ class IvorySheet extends StatelessWidget {
         child: DefaultTextStyle.merge(
           style: TextStyle(color: c.stone, fontSize: 14, height: 1.5),
           child: child,
+        ),
+      ),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.hasBoundedHeight &&
+            constraints.maxHeight.isFinite &&
+            constraints.maxHeight > 0) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            child: sheet,
+          );
+        }
+        return sheet;
+      },
+    );
+  }
+}
+
+/// Light card for list rows inside [IvorySheet] (stone text on white).
+class SheetCard extends StatelessWidget {
+  const SheetCard({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.padding,
+    this.margin,
+  });
+
+  final Widget child;
+  final VoidCallback? onTap;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.atelier;
+    final radius = BorderRadius.circular(14);
+    return Padding(
+      padding: margin ?? EdgeInsets.zero,
+      child: Material(
+        color: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(color: c.brass.withValues(alpha: 0.35)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: padding == null
+              ? child
+              : Padding(padding: padding!, child: child),
         ),
       ),
     );
@@ -864,8 +868,9 @@ class IvoryMenuCard extends StatelessWidget {
     final c = context.atelier;
     return Container(
       decoration: BoxDecoration(
-        color: c.ivory,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: c.brass.withValues(alpha: 0.28)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -888,20 +893,45 @@ class DarkMenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
-    return Container(
-      decoration: BoxDecoration(
-        color: c.raised,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: c.brass.withValues(alpha: 0.28)),
+    final darkTheme = Theme.of(context).copyWith(
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.dark(
+        surface: c.raised,
+        onSurface: c.ivory,
+        primary: c.brass,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            children[i],
-            if (i < children.length - 1) Divider(height: 1, color: c.muted),
-          ],
-        ],
+      listTileTheme: ListTileThemeData(
+        textColor: c.ivory,
+        iconColor: c.brass,
+        subtitleTextStyle: TextStyle(
+          color: c.ivoryMuted,
+          fontSize: 13,
+        ),
+      ),
+      iconTheme: IconThemeData(color: c.brass),
+      dividerColor: c.muted,
+    );
+    return Theme(
+      data: darkTheme,
+      child: DefaultTextStyle.merge(
+        style: TextStyle(color: c.ivory, fontSize: 14, height: 1.45),
+        child: Container(
+          decoration: BoxDecoration(
+            color: c.raised,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: c.brass.withValues(alpha: 0.28)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                children[i],
+                if (i < children.length - 1)
+                  Divider(height: 1, color: c.muted),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -913,13 +943,15 @@ class SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.atelier;
+    final onLight = Theme.of(context).brightness == Brightness.light;
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: context.atelier.brass,
-          fontWeight: FontWeight.w700,
+          color: onLight ? c.stone.withValues(alpha: 0.72) : c.brass,
+          fontWeight: FontWeight.w800,
           letterSpacing: 0.4,
         ),
       ),
@@ -1005,12 +1037,11 @@ Future<void> showAtelierSuccess(
   String body = 'تم تسجيل العملية بنجاح',
 }) {
   final c = context.atelier;
-  return showDialog<void>(
+  return showAtelierDialog<void>(
     context: context,
-    barrierColor: c.stone.withValues(alpha: 0.78),
     builder: (ctx) {
       return Dialog(
-        backgroundColor: c.raised,
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
           side: BorderSide(color: c.brass.withValues(alpha: 0.7)),
@@ -1035,7 +1066,7 @@ Future<void> showAtelierSuccess(
                 style: GoogleFonts.ibmPlexSansArabic(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: c.brass,
+                  color: c.stone,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1043,7 +1074,7 @@ Future<void> showAtelierSuccess(
                 body,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: c.ivoryMuted,
+                  color: c.stone.withValues(alpha: 0.7),
                   height: 1.5,
                   fontSize: 14,
                 ),

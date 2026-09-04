@@ -263,18 +263,30 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Material(
-                  color: context.atelier.teal.withValues(alpha: 0.15),
+                  color: context.atelier.teal.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
                   child: ListTile(
                     leading: Icon(Icons.palette_outlined,
                         color: context.atelier.teal),
-                    title: const Text('تصميم بانتظار اعتمادك'),
+                    title: Text(
+                      'تصميم بانتظار اعتمادك',
+                      style: TextStyle(
+                        color: context.atelier.stone,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     subtitle: Text(
                       pendingDesign
                           .map((p) => (p['title'] ?? p['name']).toString())
                           .join(' · '),
+                      style: TextStyle(
+                        color: context.atelier.stone.withValues(alpha: 0.65),
+                      ),
                     ),
-                    trailing: const Icon(Icons.chevron_left),
+                    trailing: Icon(
+                      Icons.chevron_left,
+                      color: context.atelier.stone,
+                    ),
                     onTap: () {
                       final id = pendingDesign.first['id'] as int;
                       context.push('/client/projects/$id/design-approval');

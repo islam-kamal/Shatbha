@@ -47,7 +47,7 @@ class _ProjectTeamScreenState extends State<ProjectTeamScreen> {
 
   Future<void> _inviteClient() async {
     final email = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('دعوة عميل'),
@@ -200,7 +200,7 @@ class _ProjectRequestsScreenState extends State<ProjectRequestsScreen> {
   Future<void> _create() async {
     final title = TextEditingController();
     final body = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAtelierDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('طلب جديد'),
@@ -429,7 +429,7 @@ class _ProjectRequestDetailScreenState
                 kind: AtelierButtonKind.danger,
                 onPressed: () async {
                   final note = TextEditingController();
-                  final ok = await showDialog<bool>(
+                  final ok = await showAtelierDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: const Text('سبب الرفض'),
