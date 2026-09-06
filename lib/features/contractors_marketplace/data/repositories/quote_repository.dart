@@ -18,4 +18,7 @@ class QuoteRepository {
   Future<QuoteRequest> reject(int id) => _api.reject(id);
 
   Future<QuoteRequest> get(int id) => _api.get(id);
+
+  Future<List<QuoteRequest>> compare({required int projectId, String? title}) =>
+      _api.compare(projectId: projectId, title: title);
 }

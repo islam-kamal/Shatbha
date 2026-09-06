@@ -147,6 +147,7 @@ class CreatePurchaseOrderScreen extends StatefulWidget {
 
 class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   final _notes = TextEditingController();
+  final _expectedDelivery = TextEditingController();
   final _lines = <Map<String, String>>[
     {'description': '', 'quantity': '1', 'unit_price': '0'},
   ];
@@ -179,6 +180,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   @override
   void dispose() {
     _notes.dispose();
+    _expectedDelivery.dispose();
     super.dispose();
   }
 
@@ -189,6 +191,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         if (widget.projectId != null) 'project_id': widget.projectId,
         if (_selectedVendor != null) 'vendor_id': _selectedVendor!.id,
         if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
+        if (_expectedDelivery.text.trim().isNotEmpty)
+          'expected_delivery_on': _expectedDelivery.text.trim(),
         'lines': [
           for (final line in _lines)
             if (line['description']!.trim().isNotEmpty)
@@ -243,6 +247,15 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               ],
               onChanged: (v) => setState(() => _selectedVendor = v),
             ),
+          const SizedBox(height: 16),
+          const FieldLabel('تاريخ التسليم المتوقع'),
+          TextField(
+            controller: _expectedDelivery,
+            decoration: const InputDecoration(
+              hintText: 'YYYY-MM-DD',
+              prefixIcon: Icon(Icons.event),
+            ),
+          ),
           const SizedBox(height: 16),
           const FieldLabel('البنود'),
           for (var i = 0; i < _lines.length; i++) ...[
@@ -381,6 +394,11 @@ class _PurchaseOrderDetailScreenState extends State<PurchaseOrderDetailScreen> {
             const SizedBox(height: 16),
             if (po.projectName != null)
               _PoDetailRow(label: 'المشروع', value: po.projectName!),
+            if (po.expectedDeliveryOn != null)
+              _PoDetailRow(
+                label: 'التسليم المتوقع',
+                value: displayDate(po.expectedDeliveryOn!),
+              ),
             const SectionLabel('البنود'),
             for (final line in po.lines)
               Padding(

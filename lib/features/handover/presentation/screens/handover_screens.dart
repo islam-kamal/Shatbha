@@ -217,35 +217,51 @@ class _SnagTab extends StatelessWidget {
   Future<void> _addSnag(BuildContext context) async {
     final title = TextEditingController();
     final location = TextEditingController();
+    var severity = 'normal';
     final ok = await showAtelierDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('عيب جديد'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: title,
-              decoration: const InputDecoration(labelText: 'الوصف'),
-            ),
-            TextField(
-              controller: location,
-              decoration: const InputDecoration(labelText: 'الموقع'),
-            ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('عيب جديد'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: title,
+                decoration: const InputDecoration(labelText: 'الوصف'),
+              ),
+              TextField(
+                controller: location,
+                decoration: const InputDecoration(labelText: 'الموقع'),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: severity,
+                decoration: const InputDecoration(labelText: 'الخطورة'),
+                items: const [
+                  DropdownMenuItem(value: 'normal', child: Text('عادي')),
+                  DropdownMenuItem(value: 'critical', child: Text('حرج')),
+                ],
+                onChanged: (v) => setLocal(() => severity = v ?? 'normal'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('حفظ')),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حفظ')),
-        ],
       ),
     );
     if (ok != true || title.text.trim().isEmpty || !context.mounted) return;
     final loc = location.text.trim();
     await context.read<HandoverCubit>().addSnag(projectId, {
-      'title': loc.isEmpty
-          ? title.text.trim()
-          : '${title.text.trim()} — $loc',
+      'title': title.text.trim(),
+      if (loc.isNotEmpty) 'location': loc,
+      'severity': severity,
       'status': 'open',
     });
   }
@@ -259,7 +275,13 @@ class _SnagCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
-    final open = !const {'closed', 'resolved', 'fixed'}.contains(snag.status);
+    final closed = const {'closed', 'verified'}.contains(snag.status);
+    final nextLabel = switch (snag.status) {
+      'open' => 'إصلاح',
+      'fixed' => 'تحقق',
+      'verified' => 'إغلاق',
+      _ => null,
+    };
     return Material(
       color: c.ivory,
       borderRadius: BorderRadius.circular(16),
@@ -268,8 +290,12 @@ class _SnagCard extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              open ? Icons.warning_amber : Icons.check_circle_outline,
-              color: open ? c.terracotta : c.teal,
+              snag.severity == 'critical'
+                  ? Icons.priority_high
+                  : (closed ? Icons.check_circle_outline : Icons.warning_amber),
+              color: snag.severity == 'critical'
+                  ? c.terracotta
+                  : (closed ? c.teal : c.brass),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -283,23 +309,26 @@ class _SnagCard extends StatelessWidget {
                       color: c.stone,
                     ),
                   ),
-                  if (snag.location != null)
-                    Text(
-                      snag.location!,
-                      style: TextStyle(
-                        color: c.stone.withValues(alpha: 0.55),
-                        fontSize: 12,
-                      ),
+                  Text(
+                    [
+                      snag.severity == 'critical' ? 'حرج' : 'عادي',
+                      snag.status,
+                      if (snag.location != null) snag.location!,
+                    ].join(' · '),
+                    style: TextStyle(
+                      color: c.stone.withValues(alpha: 0.55),
+                      fontSize: 12,
                     ),
+                  ),
                 ],
               ),
             ),
-            if (open)
+            if (nextLabel != null)
               TextButton(
                 onPressed: () => context
                     .read<HandoverCubit>()
-                    .resolveSnag(projectId, snag.id),
-                child: const Text('حل'),
+                    .advanceSnag(projectId, snag),
+                child: Text(nextLabel),
               ),
           ],
         ),
@@ -489,7 +518,9 @@ class _CompleteTab extends StatelessWidget {
             Text(
               state.canComplete
                   ? 'جميع الشروط مستوفاة — يمكن إتمام التسليم.'
-                  : 'أكمل قائمة الفحص، أغلق العيوب، وسجّل توقيعًا واحدًا على الأقل.',
+                  : state.criticalOpenSnags > 0
+                      ? 'لا يمكن التسليم مع ${state.criticalOpenSnags} ملاحظات حرجة مفتوحة.'
+                      : 'أكمل قائمة الفحص، أغلق الملاحظات الحرجة، وسجّل توقيعًا واحدًا على الأقل.',
               textAlign: TextAlign.center,
               style: TextStyle(color: c.ivoryMuted, height: 1.6),
             ),

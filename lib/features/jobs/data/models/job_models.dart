@@ -7,18 +7,21 @@ class JobPayment {
     required this.sequence,
     required this.amount,
     required this.paidOn,
+    this.milestoneId,
   });
 
   final int id;
   final int sequence;
   final String amount;
   final String paidOn;
+  final int? milestoneId;
 
   factory JobPayment.fromJson(Map<String, dynamic> json) => JobPayment(
         id: json['id'] as int,
         sequence: json['sequence'] as int? ?? 1,
         amount: jsonMoney(json['amount']),
         paidOn: jsonDate(json['paid_on']),
+        milestoneId: json['milestone_id'] as int?,
       );
 }
 

@@ -87,6 +87,11 @@ class _PaymentPlanScreenState extends State<PaymentPlanScreen> {
         title: const ScreenTitle('خطة الدفع', subtitle: 'الأقساط والمدفوعات'),
         toolbarHeight: 88,
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addInstallment,
+        icon: const Icon(Icons.add),
+        label: const Text('قسط جديد'),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -94,11 +99,11 @@ class _PaymentPlanScreenState extends State<PaymentPlanScreen> {
               : _installments.isEmpty
                   ? const StatusView.empty(
                       title: 'لا أقساط',
-                      body: 'لم تُحدَّد خطة دفع لهذا المشروع.')
+                      body: 'أضف قسطاً لخطة الدفع.')
                   : IvorySheet(
                       child: ListView(
                         padding:
-                            const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                            const EdgeInsets.fromLTRB(16, 16, 16, 88),
                         children: [
                           KpiStrip(
                             items: [
@@ -144,5 +149,55 @@ class _PaymentPlanScreenState extends State<PaymentPlanScreen> {
                       ),
                     ),
     );
+  }
+
+  Future<void> _addInstallment() async {
+    final label = TextEditingController();
+    final amount = TextEditingController();
+    DateTime due = DateTime.now().add(const Duration(days: 30));
+    final ok = await showAtelierDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('قسط جديد'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: label,
+              decoration: const InputDecoration(labelText: 'الوصف *'),
+            ),
+            TextField(
+              controller: amount,
+              decoration: const InputDecoration(labelText: 'المبلغ *'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('حفظ')),
+        ],
+      ),
+    );
+    if (ok != true || label.text.trim().isEmpty || amount.text.trim().isEmpty) {
+      return;
+    }
+    try {
+      await sl<ProjectOsApi>().createInstallment({
+        'project_id': widget.projectId,
+        'label': label.text.trim(),
+        'amount': amount.text.trim(),
+        'due_date': due.toIso8601String().substring(0, 10),
+      });
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 }

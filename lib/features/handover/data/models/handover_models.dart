@@ -36,6 +36,7 @@ class SnagItem {
     required this.title,
     this.description,
     this.status = 'open',
+    this.severity = 'normal',
     this.location,
   });
 
@@ -44,6 +45,7 @@ class SnagItem {
   final String title;
   final String? description;
   final String status;
+  final String severity;
   final String? location;
 
   factory SnagItem.fromJson(Map<String, dynamic> json) => SnagItem(
@@ -52,6 +54,7 @@ class SnagItem {
         title: json['title'] as String? ?? '',
         description: json['description'] as String?,
         status: json['status'] as String? ?? 'open',
+        severity: json['severity'] as String? ?? 'normal',
         location: json['location'] as String?,
       );
 }

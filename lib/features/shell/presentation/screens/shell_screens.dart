@@ -221,7 +221,12 @@ class _CompanyHomeBodyState extends State<_CompanyHomeBody> {
                 for (final item in _actionItems)
                   HubRow(
                     title: item.title,
-                    subtitle: item.subtitle,
+                    subtitle: [
+                      if (item.nextAction != null) item.nextAction!,
+                      if (item.owner != null) 'المسؤول: ${item.owner}',
+                      if (item.deadline != null) 'الموعد: ${item.deadline}',
+                      if (item.subtitle != null) item.subtitle!,
+                    ].join(' · '),
                     icon: _actionIcon(item.type),
                     onTap: () {
                       if (item.route != null) context.push(item.route!);

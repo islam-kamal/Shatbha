@@ -60,7 +60,10 @@ class QuoteRequest {
           : json['contractor_name'] as String?,
       status: json['status'] as String? ?? 'pending',
       description: json['title'] as String? ?? json['description'] as String?,
-      amount: amount ?? (json['amount'] != null ? jsonMoney(json['amount']) : null),
+      amount: amount ??
+          (json['total_price'] != null
+              ? jsonMoney(json['total_price'])
+              : (json['amount'] != null ? jsonMoney(json['amount']) : null)),
       notes: json['notes'] as String?,
       createdAt: json['created_at']?.toString(),
       responseNotes: json['response_notes'] as String?,

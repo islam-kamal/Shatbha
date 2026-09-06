@@ -63,6 +63,73 @@ class _WarrantyScreenState extends State<WarrantyScreen> {
     }
   }
 
+  Future<void> _claimActions(WarrantyClaim claim) async {
+    final action = await showAtelierBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person_add_alt),
+              title: const Text('تعيين فني / مقاول'),
+              onTap: () => Navigator.pop(ctx, 'assign'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline),
+              title: const Text('حل البلاغ'),
+              onTap: () => Navigator.pop(ctx, 'resolve'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'resolve') {
+      await _resolve(claim.id);
+      return;
+    }
+    final vendorId = TextEditingController();
+    final ok = await showAtelierDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تعيين'),
+        content: TextField(
+          controller: vendorId,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'معرف المقاول / المورد',
+            hintText: 'vendor_account_id',
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('حفظ')),
+        ],
+      ),
+    );
+    final id = int.tryParse(vendorId.text.trim());
+    if (ok != true || id == null || !mounted) return;
+    try {
+      final updated = await sl<ProjectOsApi>().assignWarrantyClaim(claim.id, {
+        'assigned_vendor_id': id,
+      });
+      if (!mounted) return;
+      setState(() {
+        _claims =
+            _claims.map((c) => c.id == claim.id ? updated : c).toList();
+      });
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
@@ -104,7 +171,11 @@ class _WarrantyScreenState extends State<WarrantyScreen> {
                             row: LedgerRow(
                               id: claim.id,
                               title: claim.title,
-                              subtitle: claim.description ?? '—',
+                              subtitle: [
+                                claim.description ?? '—',
+                                if (claim.assigneeName != null)
+                                  'مسند إلى ${claim.assigneeName}',
+                              ].join(' · '),
                               amount: _warrantyStatusLabel(claim.status),
                               accent: claim.status == 'open'
                                   ? c.terracotta
@@ -112,8 +183,9 @@ class _WarrantyScreenState extends State<WarrantyScreen> {
                               badge:
                                   claim.status == 'open' ? 'مفتوح' : 'محلول',
                             ),
-                            onTap: claim.status == 'open'
-                                ? () => _resolve(claim.id)
+                            onTap: claim.status == 'open' ||
+                                    claim.status == 'in_progress'
+                                ? () => _claimActions(claim)
                                 : null,
                           );
                         },

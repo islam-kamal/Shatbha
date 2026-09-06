@@ -23,6 +23,16 @@ class QuoteCubit extends Cubit<QuoteState> {
     }
   }
 
+  Future<void> compareQuotes({required int projectId}) async {
+    emit(state.copyWith(loading: true, error: null));
+    try {
+      final rows = await _quotes.compare(projectId: projectId);
+      emit(state.copyWith(loading: false, quotes: rows));
+    } on Failure catch (e) {
+      emit(state.copyWith(loading: false, error: e.message));
+    }
+  }
+
   Future<void> loadContractors() async {
     emit(state.copyWith(loading: true, error: null));
     try {

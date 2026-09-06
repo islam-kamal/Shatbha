@@ -233,6 +233,7 @@ class PayJobScreen extends StatefulWidget {
 class _PayJobScreenState extends State<PayJobScreen> {
   ContractorJob? _job;
   final _amount = TextEditingController();
+  final _milestoneId = TextEditingController();
   DateTime _date = DateTime.now();
 
   @override
@@ -250,6 +251,7 @@ class _PayJobScreenState extends State<PayJobScreen> {
   @override
   void dispose() {
     _amount.dispose();
+    _milestoneId.dispose();
     super.dispose();
   }
 
@@ -276,6 +278,15 @@ class _PayJobScreenState extends State<PayJobScreen> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: 'المبلغ'),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _milestoneId,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'معلم التسليم (اختياري)',
+                    hintText: 'milestone_id',
+                  ),
+                ),
                 ListTile(
                   title: Text(formatDate(_date)),
                   trailing: const Icon(Icons.event),
@@ -297,6 +308,9 @@ class _PayJobScreenState extends State<PayJobScreen> {
                     await sl<JobRepository>().pay(widget.jobId, {
                       'amount': _amount.text.trim(),
                       'paid_on': formatDate(_date),
+                      if (_milestoneId.text.trim().isNotEmpty)
+                        'milestone_id':
+                            int.tryParse(_milestoneId.text.trim()),
                     });
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

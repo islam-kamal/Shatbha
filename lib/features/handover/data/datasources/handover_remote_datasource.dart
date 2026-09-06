@@ -46,6 +46,20 @@ class HandoverRemoteDatasource {
     });
   }
 
+  Future<SnagItem> updateSnagStatus(
+    int projectId,
+    int snagId,
+    String status,
+  ) {
+    return guardDio(() async {
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/projects/$projectId/handover/snags/$snagId',
+        data: {'status': status},
+      );
+      return SnagItem.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
   Future<List<HandoverChecklistItem>> checklist(int projectId) {
     return guardDio(() async {
       final res = await _dio.get<Map<String, dynamic>>(

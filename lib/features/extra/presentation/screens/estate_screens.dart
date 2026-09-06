@@ -297,39 +297,6 @@ class ContractingScreen extends StatelessWidget {
   }
 }
 
-class InstallmentsScreen extends StatelessWidget {
-  const InstallmentsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MoneyJournalScreen(
-      title: 'تقرير الأقساط',
-      kpis: const [
-        KpiItem('مستحق', '150000'),
-        KpiItem('محصل', '250000'),
-        KpiItem('متأخر', '150000', tint: Color(0xFFE8C9BC)),
-      ],
-      lines: const [
-        DemoLine(
-          title: 'قسط ب.101',
-          subtitle: 'بدير · الوحدة 201-ج',
-          amount: '150000',
-          date: '01/06/2026',
-          badge: 'متأخر',
-          path: '/units/201-c/collect',
-        ),
-        DemoLine(
-          title: 'قسط 101-ب',
-          subtitle: 'خالد',
-          amount: '200000',
-          date: '01/05/2026',
-          badge: 'محصل',
-        ),
-      ],
-    );
-  }
-}
-
 class PartnersScreen extends StatelessWidget {
   const PartnersScreen({super.key});
 

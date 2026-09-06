@@ -60,4 +60,17 @@ class QuoteRemoteDatasource {
       return QuoteRequest.fromJson(res.data!['data'] as Map<String, dynamic>);
     });
   }
+
+  Future<List<QuoteRequest>> compare({required int projectId, String? title}) {
+    return guardDio(() async {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/quotes/compare',
+        queryParameters: {
+          'project_id': projectId,
+          if (title != null && title.isNotEmpty) 'title': title,
+        },
+      );
+      return jsonList(res.data, QuoteRequest.fromJson);
+    });
+  }
 }

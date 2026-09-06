@@ -8,8 +8,10 @@ class ProjectTask {
     this.description,
     this.status = 'pending',
     this.assignee,
+    this.startDate,
     this.dueDate,
     this.priority,
+    this.predecessorTaskId,
   });
 
   final int id;
@@ -18,8 +20,10 @@ class ProjectTask {
   final String? description;
   final String status;
   final String? assignee;
+  final String? startDate;
   final String? dueDate;
   final String? priority;
+  final int? predecessorTaskId;
 
   factory ProjectTask.fromJson(Map<String, dynamic> json) => ProjectTask(
         id: json['id'] as int,
@@ -27,9 +31,15 @@ class ProjectTask {
         title: json['title'] as String,
         description: json['description'] as String?,
         status: json['status'] as String? ?? 'pending',
-        assignee: json['assignee'] as String?,
+        assignee: json['assignee'] as String? ??
+            (json['assignee_user'] is Map
+                ? json['assignee_user']['name'] as String?
+                : null),
+        startDate:
+            json['start_date'] != null ? jsonDate(json['start_date']) : null,
         dueDate: json['due_date'] != null ? jsonDate(json['due_date']) : null,
         priority: json['priority'] as String?,
+        predecessorTaskId: json['predecessor_task_id'] as int?,
       );
 }
 

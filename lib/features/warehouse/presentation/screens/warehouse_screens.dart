@@ -197,8 +197,12 @@ class _StockLevelsView extends StatelessWidget {
                   row: LedgerRow(
                     id: row.id,
                     title: row.productName ?? 'منتج #${row.productId}',
-                    subtitle: row.unit ?? '',
-                    amount: row.quantity,
+                    subtitle: [
+                      if (row.unit != null && row.unit!.isNotEmpty) row.unit!,
+                      if (row.remainingQty != null)
+                        'متبقي ${row.remainingQty}',
+                    ].join(' · '),
+                    amount: row.remainingQty ?? row.quantity,
                     accent: c.teal,
                     badge: 'متاح',
                   ),

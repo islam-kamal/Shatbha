@@ -271,9 +271,37 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
   }
 
   Future<void> _updateStatus(String status) async {
+    String? lostReason;
+    if (status == 'lost') {
+      final ctrl = TextEditingController();
+      final ok = await showAtelierDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('سبب الخسارة'),
+          content: TextField(
+            controller: ctrl,
+            decoration: const InputDecoration(hintText: 'اكتب السبب *'),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('تأكيد')),
+          ],
+        ),
+      );
+      lostReason = ctrl.text.trim();
+      ctrl.dispose();
+      if (ok != true || lostReason.isEmpty || !mounted) return;
+    }
     try {
-      final updated =
-          await sl<ProjectOsApi>().updateLead(widget.leadId, {'status': status});
+      final updated = await sl<ProjectOsApi>().updateLead(widget.leadId, {
+        'status': status,
+        if (lostReason != null) 'lost_reason': lostReason,
+      });
       if (!mounted) return;
       setState(() => _lead = updated);
     } on Failure catch (e) {
@@ -374,10 +402,13 @@ class _LeadDetailScreenState extends State<LeadDetailScreen> {
                 for (final s in [
                   'new',
                   'contacted',
-                  'site_visited',
+                  'site_visit_scheduled',
+                  'visited',
+                  'estimating',
                   'proposal_sent',
+                  'negotiation',
                   'won',
-                  'lost'
+                  'lost',
                 ])
                   HubRow(
                     title: _leadStatusLabel(s),
@@ -429,6 +460,12 @@ class _ScheduleVisitSheetState extends State<_ScheduleVisitSheet> {
   final _notes = TextEditingController();
   DateTime? _scheduledAt;
   bool _saving = false;
+  final _checklist = <String, bool>{
+    'قياس المساحات': false,
+    'تصوير الموقع': false,
+    'مراجعة التشطيب الحالي': false,
+    'مناقشة الميزانية': false,
+  };
 
   @override
   void dispose() {
@@ -444,15 +481,19 @@ class _ScheduleVisitSheetState extends State<_ScheduleVisitSheet> {
     }
     setState(() => _saving = true);
     try {
-      await sl<ProjectOsApi>().createSiteVisit({
+      final visit = await sl<ProjectOsApi>().createSiteVisit({
         'lead_id': widget.leadId,
         'scheduled_at': _scheduledAt!.toIso8601String(),
         if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
+        'checklist_json': [
+          for (final e in _checklist.entries)
+            {'item': e.key, 'done': e.value},
+        ],
       });
       if (!mounted) return;
       Navigator.of(context).pop(true);
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم جدولة الزيارة')));
+          SnackBar(content: Text('تم جدولة الزيارة #${visit.id}')));
     } on Failure catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -467,45 +508,100 @@ class _ScheduleVisitSheetState extends State<_ScheduleVisitSheet> {
     return Padding(
       padding: EdgeInsets.fromLTRB(
           16, 8, 16, MediaQuery.of(context).viewInsets.bottom + 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('جدولة زيارة موقع',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
-          const SizedBox(height: 12),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              _scheduledAt == null
-                  ? 'اختر التاريخ'
-                  : _scheduledAt!.toString().substring(0, 10),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('جدولة زيارة موقع',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+            const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                _scheduledAt == null
+                    ? 'اختر التاريخ'
+                    : _scheduledAt!.toString().substring(0, 10),
+              ),
+              trailing: const Icon(Icons.calendar_today_outlined),
+              onTap: () async {
+                final d = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (d != null && mounted) setState(() => _scheduledAt = d);
+              },
             ),
-            trailing: const Icon(Icons.calendar_today_outlined),
-            onTap: () async {
-              final d = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-              );
-              if (d != null && mounted) setState(() => _scheduledAt = d);
-            },
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _notes,
-            decoration: const InputDecoration(labelText: 'ملاحظات'),
-            maxLines: 2,
-          ),
-          const SizedBox(height: 16),
-          AtelierButton(
-            label: _saving ? 'جاري الحفظ…' : 'جدولة الزيارة',
-            onPressed: _saving ? null : _save,
-          ),
-        ],
+            const SizedBox(height: 8),
+            const Text('قائمة الفحص',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            for (final key in _checklist.keys)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: Text(key),
+                value: _checklist[key],
+                onChanged: (v) =>
+                    setState(() => _checklist[key] = v ?? false),
+              ),
+            TextField(
+              controller: _notes,
+              decoration: const InputDecoration(
+                labelText: 'ملاحظات / روابط صور',
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 16),
+            AtelierButton(
+              label: _saving ? 'جاري الحفظ…' : 'جدولة الزيارة',
+              onPressed: _saving ? null : _save,
+            ),
+            const SizedBox(height: 8),
+            AtelierButton(
+              label: 'إتمام آخر زيارة',
+              kind: AtelierButtonKind.secondary,
+              onPressed: _saving ? null : _completeLatest,
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _completeLatest() async {
+    setState(() => _saving = true);
+    try {
+      final visits = await sl<ProjectOsApi>().listSiteVisits(widget.leadId);
+      final open = visits.where((v) => v.status != 'completed').toList();
+      if (open.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('لا زيارات مفتوحة')));
+        return;
+      }
+      await sl<ProjectOsApi>().completeSiteVisit(open.first.id, {
+        'checklist_json': [
+          for (final e in _checklist.entries)
+            {'item': e.key, 'done': true},
+        ],
+        if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
+        'photos_json': [
+          if (_notes.text.trim().isNotEmpty) {'note': _notes.text.trim()},
+        ],
+      });
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إتمام الزيارة')));
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 }
 
@@ -518,34 +614,44 @@ class _CreateProposalSheet extends StatefulWidget {
 }
 
 class _CreateProposalSheetState extends State<_CreateProposalSheet> {
-  final _amount = TextEditingController();
+  final _sell = TextEditingController();
+  final _cost = TextEditingController();
   final _notes = TextEditingController();
   bool _saving = false;
 
   @override
   void dispose() {
-    _amount.dispose();
+    _sell.dispose();
+    _cost.dispose();
     _notes.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    if (_amount.text.trim().isEmpty) {
+    if (_sell.text.trim().isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('أدخل المبلغ')));
+          .showSnackBar(const SnackBar(content: Text('أدخل سعر البيع')));
       return;
     }
     setState(() => _saving = true);
     try {
+      final sell = double.tryParse(_sell.text.trim()) ?? 0;
+      final cost = double.tryParse(_cost.text.trim());
       await sl<ProjectOsApi>().createProposal({
         'lead_id': widget.leadId,
-        'total_amount': _amount.text.trim(),
+        'total_amount': _sell.text.trim(),
+        'selling_price': _sell.text.trim(),
+        if (_cost.text.trim().isNotEmpty)
+          'estimated_cost': _cost.text.trim(),
         if (_notes.text.trim().isNotEmpty) 'notes': _notes.text.trim(),
       });
       if (!mounted) return;
       Navigator.of(context).pop(true);
+      final margin = (cost != null && sell > 0)
+          ? ' · هامش ${(((sell - cost) / sell) * 100).toStringAsFixed(1)}%'
+          : '';
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إنشاء عرض السعر')));
+          SnackBar(content: Text('تم إنشاء عرض السعر$margin')));
     } on Failure catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -568,8 +674,14 @@ class _CreateProposalSheetState extends State<_CreateProposalSheet> {
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
           const SizedBox(height: 12),
           TextField(
-            controller: _amount,
-            decoration: const InputDecoration(labelText: 'الإجمالي *'),
+            controller: _cost,
+            decoration: const InputDecoration(labelText: 'التكلفة التقديرية'),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _sell,
+            decoration: const InputDecoration(labelText: 'سعر البيع *'),
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 8),
@@ -624,8 +736,12 @@ class _LeadDetailRow extends StatelessWidget {
 String _leadStatusLabel(String status) => switch (status) {
       'new' => 'جديد',
       'contacted' => 'تم التواصل',
+      'site_visit_scheduled' => 'زيارة مجدولة',
+      'visited' => 'تمت الزيارة',
       'site_visited' => 'تمت الزيارة',
+      'estimating' => 'تقدير',
       'proposal_sent' => 'عرض مُرسل',
+      'negotiation' => 'تفاوض',
       'won' => 'مكتسب',
       'lost' => 'خسارة',
       _ => status,

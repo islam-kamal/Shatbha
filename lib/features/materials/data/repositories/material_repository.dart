@@ -34,4 +34,11 @@ class MaterialRepository {
     Map<String, dynamic> body,
   ) =>
       _api.addProjectMaterial(projectId, body);
+
+  Future<ProjectMaterial> transitionTrack(
+    int projectId,
+    int lineId,
+    String trackStatus,
+  ) =>
+      _api.transitionTrack(projectId, lineId, trackStatus);
 }

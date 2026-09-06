@@ -66,6 +66,21 @@ class HandoverCubit extends Cubit<HandoverState> {
     }
   }
 
+  Future<void> advanceSnag(int projectId, SnagItem snag) async {
+    const order = ['open', 'fixed', 'verified', 'closed'];
+    final idx = order.indexOf(snag.status);
+    if (idx < 0 || idx >= order.length - 1) return;
+    try {
+      final updated =
+          await _repo.updateSnagStatus(projectId, snag.id, order[idx + 1]);
+      emit(state.copyWith(
+        snags: state.snags.map((s) => s.id == snag.id ? updated : s).toList(),
+      ));
+    } on Failure catch (e) {
+      emit(state.copyWith(error: e.message));
+    }
+  }
+
   Future<void> addSignOff(int projectId, Map<String, dynamic> body) async {
     try {
       final sign = await _repo.signOff(projectId, body);

@@ -28,6 +28,7 @@ class StockLevel {
     this.productId,
     this.productName,
     this.quantity = '0',
+    this.remainingQty,
     this.unit,
   });
 
@@ -36,15 +37,19 @@ class StockLevel {
   final int? productId;
   final String? productName;
   final String quantity;
+  final String? remainingQty;
   final String? unit;
 
   factory StockLevel.fromJson(Map<String, dynamic> json) => StockLevel(
         id: json['id'] as int,
-        warehouseId: json['warehouse_id'] as int,
+        warehouseId: json['warehouse_id'] as int? ?? 0,
         productId: json['product_id'] as int?,
         productName: json['product_name'] as String? ??
             (json['product'] is Map ? json['product']['name'] as String? : null),
-        quantity: json['quantity']?.toString() ?? '0',
+        quantity: json['quantity']?.toString() ??
+            json['qty']?.toString() ??
+            '0',
+        remainingQty: json['remaining_qty']?.toString(),
         unit: json['unit'] as String?,
       );
 }

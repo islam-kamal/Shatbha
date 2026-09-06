@@ -9,6 +9,7 @@ class PurchaseOrder {
     this.status = 'draft',
     this.total = '0.00',
     this.orderedAt,
+    this.expectedDeliveryOn,
     this.vendorName,
     this.projectName,
     this.lines = const [],
@@ -21,6 +22,7 @@ class PurchaseOrder {
   final String status;
   final String total;
   final String? orderedAt;
+  final String? expectedDeliveryOn;
   final String? vendorName;
   final String? projectName;
   final List<PoLine> lines;
@@ -28,12 +30,15 @@ class PurchaseOrder {
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) => PurchaseOrder(
         id: json['id'] as int,
         projectId: json['project_id'] as int?,
-        vendorId: json['vendor_id'] as int?,
+        vendorId: json['vendor_id'] as int? ?? json['vendor_account_id'] as int?,
         poNumber: json['po_number'] as String?,
         status: json['status'] as String? ?? 'draft',
         total: jsonMoney(json['total']),
         orderedAt: json['ordered_at'] != null
             ? jsonDate(json['ordered_at'])
+            : (json['ordered_on'] != null ? jsonDate(json['ordered_on']) : null),
+        expectedDeliveryOn: json['expected_delivery_on'] != null
+            ? jsonDate(json['expected_delivery_on'])
             : null,
         vendorName: json['vendor'] is Map
             ? json['vendor']['name'] as String?

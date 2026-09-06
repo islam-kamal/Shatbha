@@ -22,6 +22,7 @@ import '../../features/materials/presentation/screens/material_screens.dart';
 import '../../features/notifications/presentation/screens/notification_screens.dart';
 import '../../features/project_os/presentation/screens/audit_screens.dart';
 import '../../features/project_os/presentation/screens/change_order_screens.dart';
+import '../../features/project_os/presentation/screens/collections_screen.dart';
 import '../../features/project_os/presentation/screens/daily_log_screens.dart';
 import '../../features/project_os/presentation/screens/design_version_screens.dart';
 import '../../features/project_os/presentation/screens/leads_screens.dart';

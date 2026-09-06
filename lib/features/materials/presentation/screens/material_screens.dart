@@ -450,14 +450,25 @@ class _ProjectMaterialsView extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, i) {
                       final m = state.projectMaterials[i];
+                      final rem = m.remainingQty;
                       return LedgerCard(
                         row: LedgerRow(
                           id: m.id,
                           title: m.productName ?? 'منتج #${m.productId}',
-                          subtitle: '${m.qty} ${m.unit ?? ''}',
+                          subtitle: [
+                            '${m.qty} ${m.unit ?? ''}'.trim(),
+                            _trackLabel(m.trackStatus),
+                            if (rem != null) 'متبقي $rem',
+                          ].join(' · '),
                           amount: m.total,
                           accent: c.teal,
+                          badge: _trackLabel(m.trackStatus),
                         ),
+                        onTap: m.trackStatus == 'consumed'
+                            ? null
+                            : () => context
+                                .read<MaterialCubit>()
+                                .advanceTrack(projectId, m),
                       );
                     },
                   ),
@@ -469,6 +480,14 @@ class _ProjectMaterialsView extends StatelessWidget {
       ),
     );
   }
+
+  String _trackLabel(String status) => switch (status) {
+        'ordered' => 'مطلوب شراء',
+        'delivered' => 'مُستلم',
+        'issued' => 'مُصرَف',
+        'consumed' => 'مستهلك',
+        _ => 'مطلوب',
+      };
 
   Future<void> _generatePo(BuildContext context) async {
     try {

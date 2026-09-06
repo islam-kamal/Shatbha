@@ -162,39 +162,67 @@ class _TasksTab extends StatelessWidget {
   Future<void> _showAddTask(BuildContext context) async {
     final title = TextEditingController();
     final assignee = TextEditingController();
+    final start = TextEditingController(text: formatDate(DateTime.now()));
     final due = TextEditingController(text: formatDate(DateTime.now()));
+    int? predecessorId;
     final ok = await showAtelierDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('مهمة جديدة'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: title,
-              decoration: const InputDecoration(labelText: 'العنوان'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('مهمة جديدة'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: title,
+                  decoration: const InputDecoration(labelText: 'العنوان'),
+                ),
+                TextField(
+                  controller: assignee,
+                  decoration: const InputDecoration(labelText: 'المسؤول'),
+                ),
+                TextField(
+                  controller: start,
+                  decoration: const InputDecoration(labelText: 'تاريخ البدء'),
+                ),
+                TextField(
+                  controller: due,
+                  decoration: const InputDecoration(labelText: 'تاريخ الاستحقاق'),
+                ),
+                if (state.tasks.isNotEmpty)
+                  DropdownButtonFormField<int?>(
+                    initialValue: predecessorId,
+                    decoration:
+                        const InputDecoration(labelText: 'سابقة (اختياري)'),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('بدون')),
+                      for (final t in state.tasks)
+                        DropdownMenuItem(value: t.id, child: Text(t.title)),
+                    ],
+                    onChanged: (v) => setLocal(() => predecessorId = v),
+                  ),
+              ],
             ),
-            TextField(
-              controller: assignee,
-              decoration: const InputDecoration(labelText: 'المسؤول'),
-            ),
-            TextField(
-              controller: due,
-              decoration: const InputDecoration(labelText: 'تاريخ الاستحقاق'),
-            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('حفظ')),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('حفظ')),
-        ],
       ),
     );
     if (ok != true || title.text.trim().isEmpty || !context.mounted) return;
     await context.read<PmCubit>().addTask(projectId, {
       'title': title.text.trim(),
       if (assignee.text.trim().isNotEmpty) 'assignee': assignee.text.trim(),
+      'start_date': start.text.trim(),
       'due_date': due.text.trim(),
+      if (predecessorId != null) 'predecessor_task_id': predecessorId,
       'status': 'pending',
     });
   }
@@ -236,11 +264,19 @@ class _TaskCard extends StatelessWidget {
                       decoration: done ? TextDecoration.lineThrough : null,
                     ),
                   ),
-                  if (task.assignee != null || task.dueDate != null)
+                  if (task.assignee != null ||
+                      task.startDate != null ||
+                      task.dueDate != null ||
+                      task.predecessorTaskId != null)
                     Text(
                       [
                         if (task.assignee != null) task.assignee,
-                        if (task.dueDate != null) displayDate(task.dueDate!),
+                        if (task.startDate != null)
+                          'بدء ${displayDate(task.startDate!)}',
+                        if (task.dueDate != null)
+                          'استحقاق ${displayDate(task.dueDate!)}',
+                        if (task.predecessorTaskId != null)
+                          'سابقة #${task.predecessorTaskId}',
                       ].join(' · '),
                       style: TextStyle(
                         color: c.stone.withValues(alpha: 0.55),

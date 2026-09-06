@@ -326,7 +326,7 @@ class _LifecycleSectionState extends State<_LifecycleSection> {
                         color: c.terracotta.withValues(alpha: 0.35)),
                   ),
                   child: Text(
-                    'التنفيذ مغلق — أكمل التصميم والعقد أولاً',
+                    'التنفيذ مغلق — يلزم عقد موقّع ودفعة البداية',
                     style: TextStyle(
                         color: c.terracotta,
                         fontSize: 11,
@@ -630,7 +630,7 @@ class _ProjectFinancialSummary extends StatefulWidget {
 }
 
 class _ProjectFinancialSummaryState extends State<_ProjectFinancialSummary> {
-  Map<String, dynamic>? _summary;
+  ProjectFinancials? _summary;
   bool _loading = true;
 
   @override
@@ -641,8 +641,7 @@ class _ProjectFinancialSummaryState extends State<_ProjectFinancialSummary> {
 
   Future<void> _load() async {
     try {
-      final data =
-          await sl<ProjectRepository>().financialSummary(widget.projectId);
+      final data = await sl<ProjectOsApi>().getFinancials(widget.projectId);
       if (!mounted) return;
       setState(() {
         _summary = data;
@@ -672,32 +671,52 @@ class _ProjectFinancialSummaryState extends State<_ProjectFinancialSummary> {
         KpiStrip(
           items: [
             KpiItem(
-              'الميزانية',
-              _money(s['budget'] ?? s['planned_total']),
+              'العقد',
+              s.contractValue,
               tint: c.dateTint,
               icon: Icons.account_balance_outlined,
             ),
             KpiItem(
               'الفعلي',
-              _money(s['actual_total'] ?? s['spent']),
+              s.actualCost,
               tint: c.expenseTint,
               icon: Icons.payments_outlined,
             ),
             KpiItem(
-              'المتبقي',
-              _money(s['remaining'] ?? s['balance']),
+              'الملتزم',
+              s.committedCost,
+              tint: c.brass,
+              icon: Icons.handshake_outlined,
+            ),
+            KpiItem(
+              'المتوقع',
+              s.forecastCost,
               tint: c.calculatedTint,
-              icon: Icons.savings_outlined,
+              icon: Icons.trending_up,
             ),
           ],
         ),
+        if (s.paidVsProgressWarning && s.paidVsProgressMessage != null) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: c.terracotta.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: c.terracotta.withValues(alpha: 0.35)),
+            ),
+            child: Text(
+              s.paidVsProgressMessage!,
+              style: TextStyle(
+                color: c.terracotta,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
       ],
     );
-  }
-
-  String _money(dynamic value) {
-    if (value == null) return '—';
-    return value.toString();
   }
 }
 

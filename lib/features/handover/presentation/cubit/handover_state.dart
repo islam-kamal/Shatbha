@@ -24,7 +24,14 @@ class HandoverState extends Equatable {
   final bool saving;
 
   int get openSnags => snags
-      .where((s) => !const {'closed', 'resolved', 'fixed'}.contains(s.status))
+      .where((s) => !const {'closed', 'resolved', 'fixed', 'verified'}
+          .contains(s.status))
+      .length;
+
+  int get criticalOpenSnags => snags
+      .where((s) =>
+          s.severity == 'critical' &&
+          !const {'closed', 'verified'}.contains(s.status))
       .length;
 
   int get checkedItems => checklist.where((c) => c.isChecked).length;
@@ -32,7 +39,7 @@ class HandoverState extends Equatable {
   bool get canComplete =>
       checklist.isNotEmpty &&
       checklist.every((c) => c.isChecked) &&
-      openSnags == 0 &&
+      criticalOpenSnags == 0 &&
       signOffs.isNotEmpty;
 
   HandoverState copyWith({

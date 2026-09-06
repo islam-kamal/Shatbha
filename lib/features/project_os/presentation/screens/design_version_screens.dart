@@ -4,11 +4,6 @@ import 'package:shatbha/core/core.dart';
 import '../../data/project_os_api.dart';
 import '../../data/project_os_models.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Design Versions Screen
-// Shows revision history with submit / approve / reject actions (company view).
-// ─────────────────────────────────────────────────────────────────────────────
-
 class DesignVersionsScreen extends StatefulWidget {
   const DesignVersionsScreen({super.key, required this.projectId});
   final int projectId;
@@ -50,6 +45,53 @@ class _DesignVersionsScreenState extends State<DesignVersionsScreen> {
     }
   }
 
+  Future<void> _createDraft() async {
+    try {
+      await sl<ProjectOsApi>().createDesignVersion({
+        'project_id': widget.projectId,
+        'notes': 'مسودة جديدة',
+      });
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _submit(int id) async {
+    try {
+      await sl<ProjectOsApi>().submitDesignVersion(id);
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _approve(int id) async {
+    try {
+      await sl<ProjectOsApi>().approveDesignVersion(id);
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _reject(int id) async {
+    try {
+      await sl<ProjectOsApi>().rejectDesignVersion(id, reason: 'طلب تعديلات');
+      await _load();
+    } on Failure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.atelier;
@@ -59,6 +101,11 @@ class _DesignVersionsScreenState extends State<DesignVersionsScreen> {
             subtitle: 'سجل المراجعات والاعتمادات'),
         toolbarHeight: 88,
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _createDraft,
+        icon: const Icon(Icons.add),
+        label: const Text('مسودة جديدة'),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -66,26 +113,69 @@ class _DesignVersionsScreenState extends State<DesignVersionsScreen> {
               : _versions.isEmpty
                   ? const StatusView.empty(
                       title: 'لا إصدارات',
-                      body: 'لم يُرفع أي إصدار تصميم بعد.',
+                      body: 'أنشئ مسودة تصميم ثم أرسلها للعميل.',
                     )
                   : IvorySheet(
                       child: ListView.separated(
                         padding:
-                            const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                            const EdgeInsets.fromLTRB(16, 16, 16, 88),
                         itemCount: _versions.length,
                         separatorBuilder: (_, __) =>
                             const SizedBox(height: 10),
                         itemBuilder: (ctx, i) {
                           final v = _versions[i];
-                          return LedgerCard(
-                            row: LedgerRow(
-                              id: v.id,
-                              title:
-                                  'الإصدار ${v.versionNumber}',
-                              subtitle: v.notes ?? '—',
-                              amount: _dvStatusLabel(v.status),
-                              accent: _dvStatusColor(v.status, c),
-                              badge: _dvStatusLabel(v.status),
+                          return SheetCard(
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'الإصدار ${v.versionNumber}',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700),
+                                        ),
+                                      ),
+                                      Text(
+                                        _dvStatusLabel(v.status),
+                                        style: TextStyle(
+                                          color: _dvStatusColor(v.status, c),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if ((v.notes ?? '').isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(v.notes!),
+                                  ],
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    children: [
+                                      if (v.status == 'draft')
+                                        TextButton(
+                                          onPressed: () => _submit(v.id),
+                                          child: const Text('إرسال للعميل'),
+                                        ),
+                                      if (v.status == 'submitted') ...[
+                                        TextButton(
+                                          onPressed: () => _approve(v.id),
+                                          child: const Text('اعتماد'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => _reject(v.id),
+                                          child: const Text('رفض'),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },

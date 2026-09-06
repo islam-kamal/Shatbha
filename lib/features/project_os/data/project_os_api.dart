@@ -77,6 +77,16 @@ class ProjectOsApi {
     });
   }
 
+  Future<SiteVisit> completeSiteVisit(int id, Map<String, dynamic> body) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/site-visits/$id/complete',
+        data: body,
+      );
+      return SiteVisit.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
   // ── Proposals ─────────────────────────────────────────────────────────────
 
   Future<List<Proposal>> listProposals(int leadId) {
@@ -124,6 +134,25 @@ class ProjectOsApi {
     });
   }
 
+  Future<List<PaymentInstallment>> listAllInstallments() {
+    return guardDio(() async {
+      final res =
+          await _dio.get<Map<String, dynamic>>('/payment-installments');
+      return jsonList(res.data, PaymentInstallment.fromJson);
+    });
+  }
+
+  Future<PaymentInstallment> createInstallment(Map<String, dynamic> body) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/payment-installments',
+        data: body,
+      );
+      return PaymentInstallment.fromJson(
+          res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
   Future<PaymentInstallment> markPaid(int id) {
     return guardDio(() async {
       final res = await _dio
@@ -143,6 +172,42 @@ class ProjectOsApi {
     });
   }
 
+  Future<DesignVersion> createDesignVersion(Map<String, dynamic> body) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/design-versions',
+        data: body,
+      );
+      return DesignVersion.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<DesignVersion> submitDesignVersion(int id) {
+    return guardDio(() async {
+      final res = await _dio
+          .post<Map<String, dynamic>>('/design-versions/$id/submit');
+      return DesignVersion.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<DesignVersion> approveDesignVersion(int id) {
+    return guardDio(() async {
+      final res = await _dio
+          .post<Map<String, dynamic>>('/design-versions/$id/approve');
+      return DesignVersion.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<DesignVersion> rejectDesignVersion(int id, {String? reason}) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/design-versions/$id/reject',
+        data: {if (reason != null) 'reject_reason': reason},
+      );
+      return DesignVersion.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
   // ── Client Selections ─────────────────────────────────────────────────────
 
   Future<List<ClientSelection>> listSelections(int projectId) {
@@ -158,6 +223,17 @@ class ProjectOsApi {
     return guardDio(() async {
       final res = await _dio
           .post<Map<String, dynamic>>('/client-selections/$id/approve');
+      return ClientSelection.fromJson(
+          res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<ClientSelection> selectSelection(int id, String option) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/client-selections/$id/select',
+        data: {'selected_option': option},
+      );
       return ClientSelection.fromJson(
           res.data!['data'] as Map<String, dynamic>);
     });
@@ -232,6 +308,16 @@ class ProjectOsApi {
     return guardDio(() async {
       final res = await _dio
           .post<Map<String, dynamic>>('/warranty-claims', data: body);
+      return WarrantyClaim.fromJson(res.data!['data'] as Map<String, dynamic>);
+    });
+  }
+
+  Future<WarrantyClaim> assignWarrantyClaim(int id, Map<String, dynamic> body) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/warranty-claims/$id/assign',
+        data: body,
+      );
       return WarrantyClaim.fromJson(res.data!['data'] as Map<String, dynamic>);
     });
   }

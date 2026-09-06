@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shatbha/core/core.dart';
 
+import '../../data/models/material_models.dart';
 import '../../data/repositories/material_repository.dart';
 import 'material_state.dart';
 
@@ -53,6 +54,23 @@ class MaterialCubit extends Cubit<MaterialsState> {
     } on Failure catch (e) {
       emit(state.copyWith(loading: false, error: e.message));
       return false;
+    }
+  }
+
+  Future<void> advanceTrack(int projectId, ProjectMaterial material) async {
+    const order = ['required', 'ordered', 'delivered', 'issued', 'consumed'];
+    final idx = order.indexOf(material.trackStatus);
+    if (idx < 0 || idx >= order.length - 1) return;
+    final next = order[idx + 1];
+    try {
+      final updated = await _repo.transitionTrack(projectId, material.id, next);
+      emit(state.copyWith(
+        projectMaterials: state.projectMaterials
+            .map((m) => m.id == material.id ? updated : m)
+            .toList(),
+      ));
+    } on Failure catch (e) {
+      emit(state.copyWith(error: e.message));
     }
   }
 }

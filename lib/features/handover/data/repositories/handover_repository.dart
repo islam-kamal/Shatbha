@@ -16,6 +16,13 @@ class HandoverRepository {
   Future<SnagItem> resolveSnag(int projectId, int snagId) =>
       _api.resolveSnag(projectId, snagId);
 
+  Future<SnagItem> updateSnagStatus(
+    int projectId,
+    int snagId,
+    String status,
+  ) =>
+      _api.updateSnagStatus(projectId, snagId, status);
+
   Future<List<HandoverChecklistItem>> checklist(int projectId) =>
       _api.checklist(projectId);
 

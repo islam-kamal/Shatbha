@@ -238,6 +238,16 @@ class _QuotesListView extends StatelessWidget {
       appBar: AppBar(
         title: const ScreenTitle('عروض الأسعار'),
         toolbarHeight: 76,
+        actions: [
+          if (projectId != null)
+            IconButton(
+              tooltip: 'مقارنة وترسية',
+              icon: const Icon(Icons.compare_arrows),
+              onPressed: () => context
+                  .read<QuoteCubit>()
+                  .compareQuotes(projectId: projectId!),
+            ),
+        ],
       ),
       body: BlocBuilder<QuoteCubit, QuoteState>(
         builder: (context, state) {

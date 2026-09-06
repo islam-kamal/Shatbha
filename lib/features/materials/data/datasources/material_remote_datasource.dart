@@ -98,4 +98,20 @@ class MaterialRemoteDatasource {
       );
     });
   }
+
+  Future<ProjectMaterial> transitionTrack(
+    int projectId,
+    int lineId,
+    String trackStatus,
+  ) {
+    return guardDio(() async {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/projects/$projectId/materials/$lineId/track',
+        data: {'track_status': trackStatus},
+      );
+      return ProjectMaterial.fromJson(
+        res.data!['data'] as Map<String, dynamic>,
+      );
+    });
+  }
 }

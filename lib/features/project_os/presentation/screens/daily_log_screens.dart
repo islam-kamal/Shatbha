@@ -126,6 +126,15 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
                                               .withValues(alpha: 0.6)),
                                     ),
                                   ],
+                                  if (log.delayReason != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'تأخير: ${log.delayReason}',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: c.terracotta),
+                                    ),
+                                  ],
                                   if (log.progressNotes != null) ...[
                                     const SizedBox(height: 4),
                                     Text(
@@ -134,6 +143,16 @@ class _DailyLogsScreenState extends State<DailyLogsScreen> {
                                           fontSize: 12,
                                           color: c.stone
                                               .withValues(alpha: 0.7)),
+                                    ),
+                                  ],
+                                  if (log.photosJson != null &&
+                                      log.photosJson!.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'صور: ${log.photosJson!.length}',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: c.teal),
                                     ),
                                   ],
                                 ],
@@ -164,6 +183,8 @@ class _AddDailyLogSheetState extends State<_AddDailyLogSheet> {
   final _weather = TextEditingController();
   final _workers = TextEditingController();
   final _notes = TextEditingController();
+  final _delay = TextEditingController();
+  final _photoUrl = TextEditingController();
   DateTime _logDate = DateTime.now();
   bool _saving = false;
 
@@ -173,12 +194,18 @@ class _AddDailyLogSheetState extends State<_AddDailyLogSheet> {
     _weather.dispose();
     _workers.dispose();
     _notes.dispose();
+    _delay.dispose();
+    _photoUrl.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
+      final photos = <String>[];
+      if (_photoUrl.text.trim().isNotEmpty) {
+        photos.add(_photoUrl.text.trim());
+      }
       await sl<ProjectOsApi>().createDailyLog({
         'project_id': widget.projectId,
         'log_date': _logDate.toIso8601String().substring(0, 10),
@@ -190,6 +217,9 @@ class _AddDailyLogSheetState extends State<_AddDailyLogSheet> {
           'workers_on_site': int.tryParse(_workers.text.trim()),
         if (_notes.text.trim().isNotEmpty)
           'progress_notes': _notes.text.trim(),
+        if (_delay.text.trim().isNotEmpty)
+          'delay_reason': _delay.text.trim(),
+        if (photos.isNotEmpty) 'photos_json': photos,
       });
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -256,6 +286,18 @@ class _AddDailyLogSheetState extends State<_AddDailyLogSheet> {
               decoration:
                   const InputDecoration(labelText: 'ملاحظات التقدم'),
               maxLines: 2,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _delay,
+              decoration: const InputDecoration(
+                  labelText: 'سبب التأخير (إن وجد)'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _photoUrl,
+              decoration: const InputDecoration(
+                  labelText: 'رابط صورة / مرفق (اختياري)'),
             ),
             const SizedBox(height: 16),
             AtelierButton(

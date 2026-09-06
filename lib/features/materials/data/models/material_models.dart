@@ -46,9 +46,11 @@ class ProjectMaterial {
     required this.productId,
     this.productName,
     this.qty = '1',
+    this.remainingQty,
     this.unit,
     this.unitPrice = '0.00',
     this.total = '0.00',
+    this.trackStatus = 'required',
     this.notes,
   });
 
@@ -57,21 +59,29 @@ class ProjectMaterial {
   final int productId;
   final String? productName;
   final String qty;
+  final String? remainingQty;
   final String? unit;
   final String unitPrice;
   final String total;
+  final String trackStatus;
   final String? notes;
 
   factory ProjectMaterial.fromJson(Map<String, dynamic> json) =>
       ProjectMaterial(
         id: json['id'] as int,
         projectId: json['project_id'] as int,
-        productId: json['product_id'] as int,
-        productName: json['product_name'] as String?,
+        productId: json['product_id'] as int? ??
+            (json['product'] is Map ? json['product']['id'] as int? : null) ??
+            0,
+        productName: json['product_name'] as String? ??
+            json['title'] as String? ??
+            (json['product'] is Map ? json['product']['name'] as String? : null),
         qty: json['qty']?.toString() ?? '1',
+        remainingQty: json['remaining_qty']?.toString(),
         unit: json['unit'] as String?,
         unitPrice: jsonMoney(json['unit_price']),
         total: jsonMoney(json['total']),
+        trackStatus: json['track_status'] as String? ?? 'required',
         notes: json['notes'] as String?,
       );
 }

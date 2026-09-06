@@ -139,6 +139,8 @@ class _AddChangeOrderSheetState extends State<_AddChangeOrderSheet> {
   final _title = TextEditingController();
   final _description = TextEditingController();
   final _amount = TextEditingController();
+  final _days = TextEditingController();
+  final _deposit = TextEditingController();
   bool _saving = false;
 
   @override
@@ -146,6 +148,8 @@ class _AddChangeOrderSheetState extends State<_AddChangeOrderSheet> {
     _title.dispose();
     _description.dispose();
     _amount.dispose();
+    _days.dispose();
+    _deposit.dispose();
     super.dispose();
   }
 
@@ -162,7 +166,10 @@ class _AddChangeOrderSheetState extends State<_AddChangeOrderSheet> {
         'title': _title.text.trim(),
         if (_description.text.trim().isNotEmpty)
           'description': _description.text.trim(),
-        if (_amount.text.trim().isNotEmpty) 'amount': _amount.text.trim(),
+        if (_amount.text.trim().isNotEmpty) 'price_delta': _amount.text.trim(),
+        if (_days.text.trim().isNotEmpty)
+          'days_delta': int.tryParse(_days.text.trim()) ?? 0,
+        if (_deposit.text.trim().isNotEmpty) 'deposit': _deposit.text.trim(),
       });
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -201,7 +208,19 @@ class _AddChangeOrderSheetState extends State<_AddChangeOrderSheet> {
           const SizedBox(height: 8),
           TextField(
             controller: _amount,
-            decoration: const InputDecoration(labelText: 'المبلغ'),
+            decoration: const InputDecoration(labelText: 'أثر السعر'),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _days,
+            decoration: const InputDecoration(labelText: 'أثر المدة (أيام)'),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _deposit,
+            decoration: const InputDecoration(labelText: 'عربون (اختياري)'),
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 16),

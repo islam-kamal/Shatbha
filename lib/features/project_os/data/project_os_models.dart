@@ -55,6 +55,8 @@ class SiteVisit {
     this.scheduledAt,
     this.notes,
     this.status = 'scheduled',
+    this.checklistJson,
+    this.photosJson,
     this.createdAt,
   });
 
@@ -63,6 +65,8 @@ class SiteVisit {
   final String? scheduledAt;
   final String? notes;
   final String status;
+  final List<dynamic>? checklistJson;
+  final List<dynamic>? photosJson;
   final String? createdAt;
 
   factory SiteVisit.fromJson(Map<String, dynamic> json) => SiteVisit(
@@ -71,6 +75,8 @@ class SiteVisit {
         scheduledAt: json['scheduled_at']?.toString(),
         notes: json['notes'] as String?,
         status: json['status'] as String? ?? 'scheduled',
+        checklistJson: json['checklist_json'] as List<dynamic>?,
+        photosJson: json['photos_json'] as List<dynamic>?,
         createdAt: json['created_at']?.toString(),
       );
 }
@@ -273,6 +279,8 @@ class ChangeOrder {
     required this.title,
     this.description,
     this.amount = '0.00',
+    this.daysDelta,
+    this.deposit,
     this.status = 'pending',
     this.requestedAt,
     this.approvedAt,
@@ -284,6 +292,8 @@ class ChangeOrder {
   final String title;
   final String? description;
   final String amount;
+  final int? daysDelta;
+  final String? deposit;
   final String status;
   final String? requestedAt;
   final String? approvedAt;
@@ -294,7 +304,9 @@ class ChangeOrder {
         projectId: json['project_id'] as int? ?? 0,
         title: json['title'] as String? ?? '',
         description: json['description'] as String?,
-        amount: jsonMoney(json['amount']),
+        amount: jsonMoney(json['amount'] ?? json['price_delta']),
+        daysDelta: json['days_delta'] as int?,
+        deposit: json['deposit']?.toString(),
         status: json['status'] as String? ?? 'pending',
         requestedAt: json['requested_at']?.toString(),
         approvedAt: json['approved_at']?.toString(),
@@ -315,6 +327,8 @@ class DailySiteLog {
     this.weatherCondition,
     this.workersOnSite,
     this.progressNotes,
+    this.delayReason,
+    this.photosJson,
     this.createdAt,
   });
 
@@ -325,6 +339,8 @@ class DailySiteLog {
   final String? weatherCondition;
   final int? workersOnSite;
   final String? progressNotes;
+  final String? delayReason;
+  final List<dynamic>? photosJson;
   final String? createdAt;
 
   factory DailySiteLog.fromJson(Map<String, dynamic> json) => DailySiteLog(
@@ -335,6 +351,8 @@ class DailySiteLog {
         weatherCondition: json['weather_condition'] as String?,
         workersOnSite: json['workers_on_site'] as int?,
         progressNotes: json['progress_notes'] as String?,
+        delayReason: json['delay_reason'] as String?,
+        photosJson: json['photos_json'] as List<dynamic>?,
         createdAt: json['created_at']?.toString(),
       );
 }
@@ -350,6 +368,8 @@ class WarrantyClaim {
     required this.title,
     this.description,
     this.status = 'open',
+    this.assigneeName,
+    this.visitAt,
     this.resolvedAt,
     this.createdAt,
   });
@@ -359,6 +379,8 @@ class WarrantyClaim {
   final String title;
   final String? description;
   final String status;
+  final String? assigneeName;
+  final String? visitAt;
   final String? resolvedAt;
   final String? createdAt;
 
@@ -368,6 +390,9 @@ class WarrantyClaim {
         title: json['title'] as String? ?? '',
         description: json['description'] as String?,
         status: json['status'] as String? ?? 'open',
+        assigneeName: json['assignee_name'] as String? ??
+            json['assigned_to'] as String?,
+        visitAt: json['visit_at']?.toString(),
         resolvedAt: json['resolved_at']?.toString(),
         createdAt: json['created_at']?.toString(),
       );
@@ -383,6 +408,9 @@ class ActionRequiredItem {
     required this.type,
     required this.title,
     this.subtitle,
+    this.nextAction,
+    this.owner,
+    this.deadline,
     this.route,
     this.priority = 'normal',
     this.createdAt,
@@ -392,6 +420,9 @@ class ActionRequiredItem {
   final String type;
   final String title;
   final String? subtitle;
+  final String? nextAction;
+  final String? owner;
+  final String? deadline;
   final String? route;
   final String priority;
   final String? createdAt;
@@ -402,6 +433,9 @@ class ActionRequiredItem {
         type: json['type'] as String? ?? '',
         title: json['title'] as String? ?? '',
         subtitle: json['subtitle'] as String?,
+        nextAction: json['next_action'] as String?,
+        owner: json['owner'] as String?,
+        deadline: json['deadline']?.toString(),
         route: json['route'] as String?,
         priority: json['priority'] as String? ?? 'normal',
         createdAt: json['created_at']?.toString(),
@@ -458,30 +492,53 @@ class ProjectFinancials {
   const ProjectFinancials({
     required this.projectId,
     this.contractValue = '0.00',
+    this.actualCost = '0.00',
+    this.committedCost = '0.00',
+    this.forecastCost = '0.00',
     this.totalPaid = '0.00',
     this.totalDue = '0.00',
     this.totalChangeOrders = '0.00',
     this.totalCost = '0.00',
     this.profitMargin,
+    this.paidPercent = 0,
+    this.progressPercent = 0,
+    this.paidVsProgressWarning = false,
+    this.paidVsProgressMessage,
   });
 
   final int projectId;
   final String contractValue;
+  final String actualCost;
+  final String committedCost;
+  final String forecastCost;
   final String totalPaid;
   final String totalDue;
   final String totalChangeOrders;
   final String totalCost;
   final String? profitMargin;
+  final double paidPercent;
+  final double progressPercent;
+  final bool paidVsProgressWarning;
+  final String? paidVsProgressMessage;
 
   factory ProjectFinancials.fromJson(Map<String, dynamic> json) =>
       ProjectFinancials(
         projectId: json['project_id'] as int? ?? 0,
         contractValue: jsonMoney(json['contract_value']),
+        actualCost: jsonMoney(json['actual_cost'] ?? json['total_cost']),
+        committedCost: jsonMoney(json['committed_cost']),
+        forecastCost: jsonMoney(json['forecast_cost']),
         totalPaid: jsonMoney(json['total_paid']),
         totalDue: jsonMoney(json['total_due']),
         totalChangeOrders: jsonMoney(json['total_change_orders']),
         totalCost: jsonMoney(json['total_cost']),
         profitMargin: json['profit_margin']?.toString(),
+        paidPercent: (json['paid_percent'] as num?)?.toDouble() ?? 0,
+        progressPercent: (json['progress_percent'] as num?)?.toDouble() ?? 0,
+        paidVsProgressWarning:
+            json['paid_vs_progress_warning'] as bool? ?? false,
+        paidVsProgressMessage:
+            json['paid_vs_progress_message'] as String?,
       );
 }
 
